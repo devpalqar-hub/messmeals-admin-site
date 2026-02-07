@@ -4,6 +4,7 @@ import {
   FiHome,
   FiTruck,
   FiLogOut,
+  FiMessageSquare,
 } from "react-icons/fi";
 import styles from "./Sidebar.module.css";
 import { useNavigate } from "react-router-dom";
@@ -16,7 +17,6 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [open, setOpen] = useState(false);
-
   const handleLogout = () => {
     logout();
     navigate("/login");
@@ -66,6 +66,40 @@ const Sidebar = () => {
             <FiTruck />
             <span>Delivery Agents</span>
             </NavLink>
+
+            <div
+              className={styles.group}
+            >
+              <div className={styles.groupHeader}>
+                <FiMessageSquare />
+                <span>Enquiries</span>
+              </div>
+            </div>
+
+              <div className={styles.subMenu}>
+                <NavLink
+                  to="/mess-enquiries"
+                  className={({ isActive }) =>
+                    isActive
+                      ? `${styles.subLink} ${styles.active}`
+                      : styles.subLink
+                  }
+                >
+                  Mess Enquiries
+                </NavLink>
+
+                <NavLink
+                  to="/customer-enquiries"
+                  className={({ isActive }) =>
+                    isActive
+                      ? `${styles.subLink} ${styles.active}`
+                      : styles.subLink
+                  }
+                >
+                  Customer Enquiries
+                </NavLink>
+              </div>
+
         </nav>
       </div>
 

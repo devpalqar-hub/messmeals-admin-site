@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import styles from "./Messes.module.css";
-import { LuEllipsisVertical, LuEye, LuPlus, LuSearch } from "react-icons/lu";
+import { LuEllipsisVertical, LuEye, LuPencil, LuPlus, LuSearch } from "react-icons/lu";
 import { getMesses, type Mess } from "../../api/mess.api";
 import { useNavigate } from "react-router-dom";
 
@@ -110,7 +110,7 @@ export default function Messes() {
                 <td>
                   <div className={styles.actions}>
                     <LuEye className={styles.actionsIcon} onClick={() => navigate(`/messes/${m.id}`)} />
-                    <LuEllipsisVertical className={styles.actionsIcon} />
+                    <LuPencil className={styles.actionsIcon} />
                   </div>
                 </td>
               </tr>
