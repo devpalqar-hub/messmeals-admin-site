@@ -1,0 +1,376 @@
+.wrapper {
+  padding: 24px 32px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.back {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  color:black;
+  margin-bottom: 20px;
+  transition: 0.2s ease;
+}
+
+.back:hover {
+  color: #111827;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #111827;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+
+.fullWidth {
+  margin-top: 18px;
+}
+
+label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #4b5563;
+  margin-bottom: 6px;
+  display: block;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  font-size: 14px;
+  transition: 0.2s ease;
+  background: #fafafa;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: #15803d;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.1);
+}
+
+textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.switchGroup {
+  display: flex;
+  gap: 30px;
+}
+
+.switchItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.switch {
+  position: relative;
+  width: 42px;
+  height: 22px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #d1d5db;
+  border-radius: 999px;
+  transition: 0.3s;
+}
+
+.slider:before {
+  content: "";
+  position: absolute;
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  top: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: 0.3s;
+}
+
+.switch input:checked + .slider {
+  background-color: #15803d;
+}
+
+.switch input:checked + .slider:before {
+  transform: translateX(20px);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.cancel {
+  padding: 10px 18px;
+  border-radius: 8px;
+  background: #f3f4f6;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.2s ease;
+}
+
+.cancel:hover {
+  background: #e5e7eb;
+}
+
+.create {
+  padding: 10px 18px;
+  border-radius: 8px;
+  background: #15803d;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.2s ease;
+}
+
+.create:hover {
+  background: #166534;
+}
+
+.create:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* ---------- Card Header (Add Hours / Add Admin button row) ---------- */
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.addSmallBtn {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  padding: 6px 12px;
+  font-size: 13px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.addSmallBtn:hover {
+  background: #e5e7eb;
+}
+
+/* ---------- Opening Hours Row ---------- */
+
+.hoursRow {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.hoursRow select,
+.hoursRow input {
+  flex: 1;
+}
+
+.hoursRow span {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* ---------- Empty State (Mess Admins) ---------- */
+
+.emptyState {
+  padding: 18px;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  background: #f9fafb;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* ---------- Tag List (Food Types & Tags) ---------- */
+
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 6px 12px;
+  border-radius: 999px;
+
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.tagClose {
+  background: #d1d5db;
+  border: none;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.tagClose:hover {
+  background: #ef4444;
+  color: white;
+}
+
+/* ---------- Image Upload ---------- */
+
+.uploadBox {
+  border: 2px dashed #d1d5db;
+  padding: 30px;
+  text-align: center;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.uploadBox:hover {
+  border-color: #15803d;
+  background: #f9fafb;
+}
+
+.uploadBox p {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.uploadBox span {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* ---------- Image Preview Grid ---------- */
+
+.fileList {
+  margin-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.previewItem {
+  position: relative;
+  width: 100px;
+  height: 100px;
+}
+
+.previewImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.removeBtn {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 12px;
+  cursor: pointer;
+}
+.uploadBox {
+  margin-top: 12px;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+
+.previewGrid {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.previewItem {
+  position: relative;
+}
+
+.previewImage {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.removeBtn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 768px) {
+  .hoursRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

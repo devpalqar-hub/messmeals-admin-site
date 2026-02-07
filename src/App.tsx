@@ -6,7 +6,8 @@ import DeliveryAgents from "./pages/deliveryAgents/DeliveryAgents";
 import MainLayout from "./components/Layout/MainLayout";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import MessDetails from "./pages/mess-details/MessDetails";
-
+import AddMess from "./pages/messes/AddMess";
+import EditMess from "./pages/messes/EditMess";
 function App() {
 
   return (
@@ -18,6 +19,8 @@ function App() {
         <Route element={<MainLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/messes" element={<Messes />} />
+           <Route path="/messes/add" element={<AddMess />} />
+            <Route path="/messes/edit/:id" element={<EditMess />} />
           <Route path="/delivery-agents" element={<DeliveryAgents />} />
         </Route>
         <Route

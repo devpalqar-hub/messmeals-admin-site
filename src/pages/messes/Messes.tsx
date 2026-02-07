@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import styles from "./Messes.module.css";
-import { LuEllipsisVertical, LuEye, LuPlus, LuSearch } from "react-icons/lu";
+import {  LuEye, LuPlus, LuSearch,LuPencil } from "react-icons/lu";
 import { getMesses, type Mess } from "../../api/mess.api";
 import { useNavigate } from "react-router-dom";
-
+import { updateMessStatus } from "../../api/mess.api";
 
 export default function Messes() {
   const navigate = useNavigate();
@@ -34,6 +34,27 @@ export default function Messes() {
     }
   };
 
+
+
+const handleToggle = async (id: string, currentStatus: boolean) => {
+  try {
+    const newStatus = !currentStatus;
+
+    // 🔥 Optimistic update (instant UI change)
+    setMesses((prev: any[]) =>
+      prev.map((mess) =>
+        mess.id === id ? { ...mess, is_active: newStatus } : mess
+      )
+    );
+
+    await updateMessStatus(id, newStatus);
+
+  } catch (error) {
+    console.error("Failed to update status", error);
+  }
+};
+
+
   // frontend search
   const filtered = messes.filter((m) =>
     m.name.toLowerCase().includes(search.toLowerCase())
@@ -53,7 +74,10 @@ export default function Messes() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <button className={styles.addButton}>
+        <button
+          className={styles.addButton}
+          onClick={() => navigate("/messes/add")}
+        >
           <LuPlus /> Add New Mess
         </button>
       </div>
@@ -100,7 +124,7 @@ export default function Messes() {
                     <input
                       type="checkbox"
                       checked={m.is_active}
-                      onChange={() => toggleActive(m.id)}
+                      onChange={() => handleToggle(m.id, m.is_active)}
                     />
                     <span className={styles.slider}></span>
                   </label>
@@ -110,7 +134,7 @@ export default function Messes() {
                 <td>
                   <div className={styles.actions}>
                     <LuEye className={styles.actionsIcon} onClick={() => navigate(`/messes/${m.id}`)} />
-                    <LuEllipsisVertical className={styles.actionsIcon} />
+                    <LuPencil className={styles.actionsIcon} onClick={() => navigate(`/messes/edit/${m.id}`)}/>
                   </div>
                 </td>
               </tr>
