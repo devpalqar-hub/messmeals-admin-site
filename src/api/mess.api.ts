@@ -17,3 +17,8 @@ export const getMesses = (page: number, limit: number) => {
     params: { page, limit },
   });
 };
+export const updateMessStatus = async (id: string, is_active: boolean) => {
+  return api.patch(`/mess/${id}`, {
+    is_active,
+  });
+};
