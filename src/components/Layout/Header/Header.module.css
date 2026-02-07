@@ -1,0 +1,12 @@
+.header {
+  border-bottom: 1px solid #eee;
+  padding: 25px;
+  height: 75px;
+  background: rgba(255, 255, 255, 0.75); /* translucent */
+  backdrop-filter: blur(12px);
+}
+
+
+.title {
+  font-size: 30px;
+}
