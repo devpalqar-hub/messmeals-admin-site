@@ -5,6 +5,7 @@ import { useState } from "react";
 import { createMess } from "../../api/addMess.api";
 import {  useEffect } from "react";
 import api from "../../api/axios"; 
+import { useToast } from "../../components/ui/Toast/ToastContainer";
 
 export default function AddMess() {
   const navigate = useNavigate();
@@ -25,6 +26,7 @@ export default function AddMess() {
     is_premium: false, 
   });
 
+  const { showToast } = useToast();
 
   const [foodTypes, setFoodTypes] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
@@ -112,8 +114,6 @@ const [loadingDistricts, setLoadingDistricts] = useState(false);
 
 
 
-
-
   /* ---------------- HANDLERS ---------------- */
 
   const handleChange = (e: any) => {
@@ -146,13 +146,25 @@ const [loadingDistricts, setLoadingDistricts] = useState(false);
         tags,
         files,
       });
-      
-      navigate("/messes");
-    } catch (error) {
-      console.error("Create mess failed", error);
-    } finally {
-      setLoading(false);
+    showToast("Mess created successfully ", "success");
+
+        navigate("/messes");
+        } catch (error: any) {
+    console.error("Create mess failed", error);
+
+    let errorMessage = "Something went wrong";
+
+    if (error.response?.data?.message) {
+        if (Array.isArray(error.response.data.message)) {
+        errorMessage = error.response.data.message.join(", ");
+        } else {
+        errorMessage = error.response.data.message;
+        }
     }
+
+    showToast(errorMessage, "error");
+    }
+
   };
 
   /* ---------------- UI ---------------- */
@@ -272,147 +284,146 @@ const [loadingDistricts, setLoadingDistricts] = useState(false);
         </div>
       </div>
 
- {/* OPENING HOURS */}
-<div className={styles.card}>
-  <div className={styles.cardHeader}>
-    <h3>Opening Hours</h3>
-    <button
-      type="button"
-      className={styles.addSmallBtn}
-      onClick={handleAddHours}
-    >
-      <LuPlus /> Add Hours
-    </button>
-  </div>
+            {/* OPENING HOURS */}
+            <div className={styles.card}>
+            <div className={styles.cardHeader}>
+                <h3>Opening Hours</h3>
+                <button
+                type="button"
+                className={styles.addSmallBtn}
+                onClick={handleAddHours}
+                >
+                <LuPlus /> Add Hours
+                </button>
+            </div>
 
-  <div className={styles.hoursRow}>
-    <select
-      value={selectedDay}
-      onChange={(e) => setSelectedDay(e.target.value as Day)}
-    >
-      <option value="monday">Monday</option>
-      <option value="tuesday">Tuesday</option>
-      <option value="wednesday">Wednesday</option>
-      <option value="thursday">Thursday</option>
-      <option value="friday">Friday</option>
-      <option value="saturday">Saturday</option>
-      <option value="sunday">Sunday</option>
-    </select>
+            <div className={styles.hoursRow}>
+                <select
+                value={selectedDay}
+                onChange={(e) => setSelectedDay(e.target.value as Day)}
+                >
+                <option value="monday">Monday</option>
+                <option value="tuesday">Tuesday</option>
+                <option value="wednesday">Wednesday</option>
+                <option value="thursday">Thursday</option>
+                <option value="friday">Friday</option>
+                <option value="saturday">Saturday</option>
+                <option value="sunday">Sunday</option>
+                </select>
 
-    <input
-      type="time"
-      value={openTime}
-      onChange={(e) => setOpenTime(e.target.value)}
-    />
+                <input
+                type="time"
+                value={openTime}
+                onChange={(e) => setOpenTime(e.target.value)}
+                />
 
-    <span>to</span>
+                <span>to</span>
 
-    <input
-      type="time"
-      value={closeTime}
-      onChange={(e) => setCloseTime(e.target.value)}
-    />
-  </div>
-</div>
-{/* MESS ADMINS */}
-<div className={styles.card}>
-  <div className={styles.cardHeader}>
-    <h3>Mess Admins</h3>
+                <input
+                type="time"
+                value={closeTime}
+                onChange={(e) => setCloseTime(e.target.value)}
+                />
+            </div>
+            </div>
+            {/* MESS ADMINS */}
+            <div className={styles.card}>
+            <div className={styles.cardHeader}>
+                <h3>Mess Admins</h3>
 
-    <button type="button" className={styles.addSmallBtn}>
-      <LuPlus /> Add Hours
-    </button>
-  </div>
+                <button type="button" className={styles.addSmallBtn}>
+                <LuPlus /> Add Hours
+                </button>
+            </div>
 
-  <div className={styles.emptyState}>
-    No admins added yet. Click "Add Admin" to add one.
-  </div>
-</div>
+            <div className={styles.emptyState}>
+                No admins added yet. Click "Add Admin" to add one.
+            </div>
+        </div>
 
       {/* FOOD TYPES */}
-<div className={styles.card}>
-  <h3>Food Types</h3>
+            <div className={styles.card}>
+            <h3>Food Types</h3>
 
-  <select
-    onChange={(e) => {
-      const value = e.target.value;
-      if (!value || foodTypes.includes(value)) return;
+            <select
+                onChange={(e) => {
+                const value = e.target.value;
+                if (!value || foodTypes.includes(value)) return;
 
-      setFoodTypes((prev) => [...prev, value]);
-    }}
-  >
-    <option value="">Select Food Type</option>
-    {FOOD_TYPE_OPTIONS.map((type) => (
-      <option key={type} value={type}>
-        {type.replace("_", " ")}
-      </option>
-    ))}
-  </select>
+                setFoodTypes((prev) => [...prev, value]);
+                }}
+            >
+                <option value="">Select Food Type</option>
+                {FOOD_TYPE_OPTIONS.map((type) => (
+                <option key={type} value={type}>
+                    {type.replace("_", " ")}
+                </option>
+                ))}
+            </select>
 
-  <div className={styles.tagList}>
-  {foodTypes.map((item, i) => (
-    <div key={i} className={styles.tag}>
-      <span>{item.replace(/_/g, " ")}</span>
+            <div className={styles.tagList}>
+            {foodTypes.map((item, i) => (
+                <div key={i} className={styles.tag}>
+                <span>{item.replace(/_/g, " ")}</span>
 
-      <button
-        type="button"
-        className={styles.tagClose}
-        onClick={() =>
-          setFoodTypes((prev) =>
-            prev.filter((_, index) => index !== i)
-          )
-        }
-      >
-        ×
-      </button>
-    </div>
-  ))}
-</div>
-</div>
-
+                <button
+                    type="button"
+                    className={styles.tagClose}
+                    onClick={() =>
+                    setFoodTypes((prev) =>
+                        prev.filter((_, index) => index !== i)
+                    )
+                    }
+                >
+                    ×
+                </button>
+                </div>
+            ))}
+            </div>
+            </div>
 
       {/* TAGS */}
-<div className={styles.card}>
-  <h3>Tags</h3>
+                <div className={styles.card}>
+                <h3>Tags</h3>
 
-  <select
-    onChange={(e) => {
-      const value = e.target.value;
-      if (!value || tags.includes(value)) return;
+                <select
+                    onChange={(e) => {
+                    const value = e.target.value;
+                    if (!value || tags.includes(value)) return;
 
-      setTags((prev) => [...prev, value]);
-    }}
-  >
-    <option value="">Select Tag</option>
-    {TAG_OPTIONS.map((tag) => (
-      <option key={tag} value={tag}>
-        {tag.replace(/_/g, " ")}
-      </option>
-    ))}
-  </select>
+                    setTags((prev) => [...prev, value]);
+                    }}
+                >
+                    <option value="">Select Tag</option>
+                    {TAG_OPTIONS.map((tag) => (
+                    <option key={tag} value={tag}>
+                        {tag.replace(/_/g, " ")}
+                    </option>
+                    ))}
+                </select>
 
-  <div className={styles.tagList}>
-  {tags.map((item, i) => (
-    <div key={i} className={styles.tag}>
-      <span className={styles.tagText}>
-        {item.replace(/_/g, " ")}
-      </span>
+                <div className={styles.tagList}>
+                {tags.map((item, i) => (
+                    <div key={i} className={styles.tag}>
+                    <span className={styles.tagText}>
+                        {item.replace(/_/g, " ")}
+                    </span>
 
-      <button
-        type="button"
-        className={styles.tagClose}
-        onClick={() =>
-          setTags((prev) =>
-            prev.filter((_, index) => index !== i)
-          )
-        }
-      >
-        ×
-      </button>
-    </div>
-  ))}
-</div>
-</div>
+                    <button
+                        type="button"
+                        className={styles.tagClose}
+                        onClick={() =>
+                        setTags((prev) =>
+                            prev.filter((_, index) => index !== i)
+                        )
+                        }
+                    >
+                        ×
+                    </button>
+                    </div>
+                ))}
+                </div>
+            </div>
 
             {/* IMAGES */}
             <div className={styles.card}>
@@ -478,22 +489,22 @@ const [loadingDistricts, setLoadingDistricts] = useState(false);
             )}
             </div>
       {/* ACTIONS */}
-      <div className={styles.actions}>
-        <button
-          className={styles.cancel}
-          onClick={() => navigate("/messes")}
-        >
-          Cancel
-        </button>
+        <div className={styles.actions}>
+            <button
+                className={styles.cancel}
+                onClick={() => navigate("/messes")}
+                >
+                Cancel
+            </button>
 
-        <button
-          className={styles.create}
-          onClick={handleSubmit}
-          disabled={loading}
-        >
-          {loading ? "Creating..." : "Create Mess"}
-        </button>
-      </div>
-    </div>
-  );
-}
+            <button
+                className={styles.create}
+                onClick={handleSubmit}
+                disabled={loading}
+                >
+                {loading ? "Creating..." : "Create Mess"}
+            </button>
+            </div>
+            </div>
+        );
+    }
