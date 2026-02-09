@@ -1,37 +1,31 @@
-import { useState } from "react";
+import { useEffect,useState } from "react";
 import styles from "./CustomerEnquiries.module.css";
-import { LuEllipsisVertical, LuMail, LuEye } from "react-icons/lu";
+import { LuMail} from "react-icons/lu";
+import { getEnquiries, type Enquiry } from "../../../api/enquiry.api";
 
-const dummyCustomerEnquiries = [
-  {
-    id: 1,
-    name: "Rahul",
-    email: "rahul@gmail.com",
-    messName: "Riseres Mess",
-    location: "Alappuzha - 690542",
-    message: "Do you provide non veg meals?",
-    date: "04 Feb 2026",
-  },
-  {
-    id: 2,
-    name: "Anu",
-    email: "anu@gmail.com",
-    messName: "Sunrise Mess",
-    location: "Kollam - 691001",
-    message: "Is monthly subscription available?",
-    date: "05 Feb 2026",
-  },
-];
 
 export default function CustomerEnquiries() {
-  const [page, setPage] = useState(1);
+ const [page, setPage] = useState(1);
   const limit = 5;
+  const [data, setData] = useState<Enquiry[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    fetchEnquiries();
+  }, [page]);
 
-  const totalPages = Math.ceil(dummyCustomerEnquiries.length / limit);
-  const visible = dummyCustomerEnquiries.slice(
-    (page - 1) * limit,
-    page * limit
-  );
+  const fetchEnquiries = async () => {
+    try {
+      setLoading(true);
+      const res = await getEnquiries("user", page, limit);
+      setData(res.data.data);
+      setTotalPages(res.data.meta.totalPages);
+    } catch (err) {
+      console.error("Failed to load customer enquiries");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className={styles.wrapper}>
@@ -45,12 +39,18 @@ export default function CustomerEnquiries() {
               <th>Location</th>
               <th>Question</th>
               <th>Date</th>
-              <th>Actions</th>
             </tr>
           </thead>
 
           <tbody>
-            {visible.map((e) => (
+            {loading && (
+              <tr>
+                <td colSpan={7} style={{ textAlign: "center" }}>
+                  Loading...
+                </td>
+              </tr>
+            )}
+            {!loading && data.map((e) => (
               <tr key={e.id}>
                 <td>{e.name}</td>
 
@@ -58,8 +58,9 @@ export default function CustomerEnquiries() {
                   <LuMail /> {e.email}
                 </td>
 
-                <td>{e.messName}</td>
-                <td>{e.location}</td>
+                <td>{e.mess?.name ?? "-"}</td>
+                <td>{e.district ?? "-"}</td>
+
 
                 <td className={styles.message}>
                   {e.message.length > 30
@@ -67,11 +68,12 @@ export default function CustomerEnquiries() {
                     : e.message}
                 </td>
 
-                <td>{e.date}</td>
-
-                <td className={styles.actions}>
-                  <LuEye />
-                  <LuEllipsisVertical />
+                <td>
+                  {new Date(e.createdAt).toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
                 </td>
               </tr>
             ))}

@@ -1,53 +1,33 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import styles from "./MessEnquiries.module.css";
-import { LuEllipsisVertical, LuMail } from "react-icons/lu";
+import { LuMail } from "react-icons/lu";
+import { getEnquiries, type Enquiry } from "../../../api/enquiry.api";
 
-const dummyEnquiries = [
-  {
-    id: 1,
-    name: "Devan",
-    email: "newfood@gmail.com",
-    messName: "newfoodmess",
-    location: "Kollam - 690542",
-    message: "hi",
-    date: "04 Feb 2026",
-  },
-  {
-    id: 2,
-    name: "Adam",
-    email: "adamfood@gmail.com",
-    messName: "englishbreakfast",
-    location: "Alappuzha - 567880",
-    message: "hi there",
-    date: "04 Feb 2026",
-  },
-  {
-    id: 3,
-    name: "Adheena",
-    email: "keralafood@gmail.com",
-    messName: "kerala food store",
-    location: "Idukki - 679823",
-    message: "hi",
-    date: "04 Feb 2026",
-  },
-  {
-    id: 4,
-    name: "Rahul",
-    email: "rahul@gmail.com",
-    messName: "suvarnaa",
-    location: "Alappuzha - 690542",
-    message: "Do you provide monthly veg meals?",
-    date: "04 Feb 2026",
-  },
-];
 
 export default function MessEnquiries() {
   const [page, setPage] = useState(1);
-  const limit = 4;
+  const limit = 5;
 
-  const totalPages = Math.ceil(dummyEnquiries.length / limit);
-  const start = (page - 1) * limit;
-  const visible = dummyEnquiries.slice(start, start + limit);
+  const [data, setData] = useState<Enquiry[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchEnquiries();
+  }, [page]);
+
+  const fetchEnquiries = async () => {
+    try {
+      setLoading(true);
+      const res = await getEnquiries("messowner", page, limit);
+      setData(res.data.data);
+      setTotalPages(res.data.meta.totalPages);
+    } catch (err) {
+      console.error("Failed to load customer enquiries");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className={styles.wrapper}>
@@ -62,12 +42,17 @@ export default function MessEnquiries() {
               <th>Location</th>
               <th>Message</th>
               <th>Date</th>
-              <th>Actions</th>
             </tr>
           </thead>
 
-          <tbody>
-            {visible.map((e) => (
+          <tbody>{loading && (
+              <tr>
+                <td colSpan={7} style={{ textAlign: "center" }}>
+                  Loading...
+                </td>
+              </tr>
+            )}
+            {!loading && data.map((e) => (
               <tr key={e.id}>
                 <td>{e.name}</td>
 
@@ -76,8 +61,8 @@ export default function MessEnquiries() {
                   {e.email}
                 </td>
 
-                <td>{e.messName}</td>
-                <td>{e.location}</td>
+                <td>{e.messname}</td>
+                <td>{e.district}</td>
 
                 <td className={styles.message}>
                   {e.message.length > 25
@@ -85,10 +70,12 @@ export default function MessEnquiries() {
                     : e.message}
                 </td>
 
-                <td>{e.date}</td>
-
                 <td>
-                  <LuEllipsisVertical className={styles.actions} />
+                  {new Date(e.createdAt).toLocaleDateString("en-IN", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                    })}
                 </td>
               </tr>
             ))}

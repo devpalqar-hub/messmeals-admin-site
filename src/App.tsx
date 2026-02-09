@@ -5,9 +5,10 @@ import Messes from "./pages/messes/Messes";
 import DeliveryAgents from "./pages/deliveryAgents/DeliveryAgents";
 import MainLayout from "./components/Layout/MainLayout";
 import ProtectedRoute from "./routes/ProtectedRoute";
-import MessDetails from "./pages/mess-details/MessDetails";
-import MessEnquiries from "./pages/enquiries/Mess Listing Enquiries/MessEnquiries";
+import AddMess from "./pages/messes/AddMess";
+import EditMess from "./pages/messes/EditMess";import MessEnquiries from "./pages/enquiries/Mess Listing Enquiries/MessEnquiries";
 import CustomerEnquiries from "./pages/enquiries/Customer Enquiries/CustomerEnquiries";
+import MessDetails from "./pages/mess-details/MessDetails";
 
 function App() {
 
@@ -20,6 +21,8 @@ function App() {
         <Route element={<MainLayout />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/messes" element={<Messes />} />
+           <Route path="/messes/add" element={<AddMess />} />
+            <Route path="/messes/edit/:id" element={<EditMess />} />
           <Route path="/delivery-agents" element={<DeliveryAgents />} />
           <Route path="/mess-enquiries" element={<MessEnquiries />} />
           <Route path="/customer-enquiries" element={<CustomerEnquiries />} />
