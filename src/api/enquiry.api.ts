@@ -2,7 +2,7 @@ import api from "./axios";
 
 
 
-export type EnquiryType = "user" | "messowner";
+export type EnquiryType = "USER" | "MESS_OWNER";
 
 export interface Enquiry {
   id: string;
@@ -10,7 +10,7 @@ export interface Enquiry {
   email: string;
   phone: string;
   message: string;
-  enquiryType: "USER" | "MESSOWNER";
+  enquiryType: "USER" | "MESS_OWNER";
   messname: string | null;
   district: string | null;
   pincode: string | null;
@@ -32,8 +32,6 @@ export interface EnquiryResponse {
     totalPages: number;
   };
 }
-
-
 
 export const getEnquiries = (
   enquiryType: EnquiryType,

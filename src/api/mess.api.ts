@@ -24,8 +24,10 @@ export interface MessDetails {
   createdAt: string;
   openingHours: Record<string, string>;
   images: { id: string; url: string; isCover: boolean }[];
-  messAdmins: any[];
+  messAdmins: MessAdmin[];
   plans: any[];
+  DeliveryPartnerProfile: any[];
+  UserSubscriptions: any[];
 }
 
 export interface MessStats {
@@ -38,6 +40,20 @@ export interface MessStats {
   avgPerCustomer: number;
   pendingRevenue: number;
   todaysRevenue: number;
+}
+export interface MessAdminUser {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+}
+
+export interface MessAdmin {
+  id: string;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
+  user: MessAdminUser;
 }
 
 
