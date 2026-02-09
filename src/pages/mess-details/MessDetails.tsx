@@ -1,10 +1,59 @@
 import styles from "./MessDetails.module.css";
-import { LuArrowLeft, LuCalendar, LuMail, LuMapPin, LuPencil, LuPhone, LuTrash, LuTruck } from "react-icons/lu";
-import { useNavigate } from "react-router-dom";
+import { LuArrowLeft, LuCalendar, LuIndianRupee, LuMail, LuMapPin, LuPackage, LuPackageCheck, LuPencil, LuPhone, LuTrash, LuTruck } from "react-icons/lu";
+import { useNavigate, useParams } from "react-router-dom";
 import StatCard from "../../components/ui/StatCard/StatCard";
+import { useEffect, useState } from "react";
+import { getMessById, getMessStats, type MessDetails, type MessStats } from "../../api/mess.api";
 
 const MessDetails = () => {
-  const navigate = useNavigate();
+const navigate = useNavigate();
+const { id } = useParams();
+const [mess, setMess] = useState<MessDetails | null>(null);
+const [stats, setStats] = useState<MessStats | null>(null);
+
+const [loading, setLoading] = useState(true);
+
+const safeStats = stats ?? {
+  totalRevenue: 0,
+  completedOrders: 0,
+  totalOrders: 0,
+  pendingRevenue: 0,
+  todaysRevenue: 0,
+  totalPartners: 0,
+  activePartners: 0,
+};
+
+
+useEffect(() => {
+  if (!id) return;
+
+  const fetchAll = async () => {
+    try {
+      setLoading(true);
+
+      const messRes = await getMessById(id);
+      setMess(messRes.data);
+
+      const today = new Date().toISOString().split("T")[0];
+
+      const statsRes = await getMessStats(id, today);
+      setStats(statsRes.data);
+      console.log("Fetched stats:", statsRes.data);
+
+    } catch (err) {
+      console.error("Failed to load mess details or stats", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchAll();
+}, [id]);
+
+
+if (loading) return <p>Loading mess details...</p>;
+if (!mess) return <p>Mess not found</p>;
+
 
   return (
     <div className={styles.wrapper}>
@@ -13,16 +62,15 @@ const MessDetails = () => {
       <div className={styles.header}>
         <div className={styles.left}>
           <LuArrowLeft onClick={() => navigate(-1)} />
-          <h2>Riseres Mess</h2>
-          <span className={styles.active}>Active</span>
+          <h2>{mess.name}</h2>
+          <span className={mess.is_active ? styles.active : styles.inactive}>
+            {mess.is_active ? "Active" : "Inactive"}
+          </span>
         </div>
 
         <div className={styles.actions}>
           <button className={styles.edit}>
             <LuPencil /> Edit
-          </button>
-          <button className={styles.delete}>
-            <LuTrash /> Delete
           </button>
         </div>
       </div>
@@ -30,74 +78,78 @@ const MessDetails = () => {
       {/* STATS */}
       <div className={styles.statsGrid}>
         <StatCard
-          title="Total Revenue"
-          value="₹4.5L"
-          icon={<LuTruck />}
-        />
-        <StatCard
-          title="Completed Orders"
-          value="1456"
-          icon={<LuTruck />}
-        />
-        <StatCard
-          title="Total Orders"
-          value="1456"
-          icon={<LuTruck />}
-        />
-        <StatCard
-          title="Total Orders"
-          value="1456"
-          icon={<LuTruck />}
-        />
-        <StatCard
-          title="Total Orders"
-          value="1456"
-          icon={<LuTruck />}
-        />
-        <StatCard
-          title="Total Orders"
-          value="1456"
-          icon={<LuTruck />}
-        />
-        <StatCard
-          title="Total Orders"
-          value="1456"
-          icon={<LuTruck />}
-        />
-        <StatCard
-          title="Total Orders"
-          value="1456"
-          icon={<LuTruck />}
-        />
+            title="Total Revenue"
+            value={`₹${safeStats.totalRevenue.toLocaleString("en-IN")}`}
+            icon={<LuIndianRupee />}
+          />
+
+          <StatCard
+            title="Total Orders"
+            value={safeStats.totalOrders.toString()}
+            icon={<LuPackage />}
+          />
+
+          <StatCard
+            title="Completed Orders"
+            value={safeStats.completedOrders.toString()}
+            icon={<LuPackageCheck />}
+          />
+
+          <StatCard
+            title="Pending Revenue"
+            value={`₹${safeStats.pendingRevenue.toLocaleString("en-IN")}`}
+            icon={<LuIndianRupee />}
+          />
+
+          <StatCard
+            title="Today's Revenue"
+            value={`₹${safeStats.todaysRevenue.toLocaleString("en-IN")}`}
+            icon={<LuIndianRupee />}
+          />
+          <StatCard
+            title="Total Partners"
+            value={safeStats.totalPartners.toString()}
+            icon={<LuTruck />}
+          />
+          <StatCard
+            title="Active Partners"
+            value={safeStats.activePartners.toString()}
+            icon={<LuTruck />}
+          />
+
       </div>
 
       {/* INFO GRID */}
       <div className={styles.row}>
         <div className={styles.card}>
           <h3>Basic Information</h3>
-          <div className={styles.infoRow}><h5><LuPhone /> Phone</h5> <p>92836596878</p></div>
-          <div className={styles.infoRow}><h5><LuMail /> Email</h5> <p>ruserws@gmail.com</p></div>
-          <div className={styles.infoRow}><h5><LuMapPin /> Address</h5> <p>Riseres Mess Address</p></div>
-          <div className={styles.infoRow}><h5><LuMapPin /> Location</h5> <p>Alappuzha</p></div>
-          <div className={styles.infoRow}><h5><LuCalendar /> Created</h5> <p>Jan 27, 2026</p></div>
+          <div className={styles.infoRow}><h5><LuPhone /> Phone</h5> <p>{mess.phone}</p></div>
+          <div className={styles.infoRow}><h5><LuMail /> Email</h5> <p>{mess.email}</p></div>
+          <div className={styles.infoRow}><h5><LuMapPin /> Address</h5> <p>{mess.address}</p></div>
+          <div className={styles.infoRow}><h5><LuMapPin /> Location</h5> <p>{mess.location}</p></div>
+          <div className={styles.infoRow}><h5><LuCalendar /> Created</h5> <p>{new Date(mess.createdAt).toDateString()}</p></div>
         </div>
 
         <div className={styles.card}>
           <h3>Description</h3>
-          <p>riseres mess description</p>
+          <p>{mess.description || "No description provided."}</p>
         </div>
       </div>
 
       <div className={styles.row}>
         <div className={styles.card}>
           <h3>Opening Hours</h3>
-          <p>Monday: 9:30 - 16:00</p>
-          <p>Tuesday: 9:30 - 16:00</p>
-          <p>Wednesday: 9:30 - 16:00</p>
-          <p>Thursday: 9:30 - 16:00</p>
-          <p>Friday: 9:30 - 16:00</p>
-          <p>Saturday: 9:30 - 16:00</p>
-          <p>Sunday: Closed</p>
+          {mess.openingHours && Object.keys(mess.openingHours).length > 0 ? (
+            Object.entries(mess.openingHours).map(([day, time]) => (
+              <p key={day}>
+                <strong>{day}:</strong> {time}
+              </p>
+            ))
+          ) : (
+            <p>No opening hours provided.</p>
+          )}
+
+
         </div>
         <div className={styles.card}>
           <h3>Meal Plans</h3>
@@ -146,10 +198,18 @@ const MessDetails = () => {
       {/* GALLERY */}
       <div className={styles.card}>
         <h3>Gallery (1)</h3>
-        <img
-          src="https://images.unsplash.com/photo-1604908177522-040a4b2e5c5c"
-          className={styles.image}
-        />
+        {mess.images.length === 0 ? (
+          <p>No images uploaded.</p>
+        ) : (
+          mess.images.map(img => (
+            <img
+              key={img.id}
+              src={img.url}
+              className={styles.image}
+            />
+          ))
+        )}
+
       </div>
 
     </div>
