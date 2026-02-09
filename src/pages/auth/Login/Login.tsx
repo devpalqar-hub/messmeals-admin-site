@@ -56,21 +56,28 @@ export default function Login() {
     <div className={styles.container}>
       {/* LEFT SIDE */}
       <div className={styles.left}>
-        <div className={styles.brand}>
-          <div className={styles.logo}>🍽</div>
-          <h3>Mess Meals</h3>
-        </div>
+        <div className={styles.imageWrapper}>
+          <div className={styles.imageOverlay}></div>
 
-        <h1>Admin Dashboard</h1>
-        <p>
-          Manage your food marketplace platform efficiently.
-          <br />
-          Monitor messes, users, subscriptions, and deliveries all in one place.
-        </p>
+          <div className={styles.leftContent}>
+            <div className={styles.brand}>
+              <div className={styles.logo}>🍽</div>
+              <h3>Mess Meals</h3>
+            </div>
+
+            <h1>Admin Dashboard</h1>
+            <p>
+              Manage your food marketplace platform efficiently.
+              <br />
+              Monitor messes, users, subscriptions, and deliveries all in one place.
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* RIGHT SIDE */}
       <div className={styles.right}>
+         <div className={styles.loginCard}></div>
         <h2>Welcome back</h2>
         <p className={styles.subtitle}>
           Enter your credentials to access your account
