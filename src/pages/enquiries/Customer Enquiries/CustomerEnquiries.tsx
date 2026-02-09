@@ -17,7 +17,7 @@ export default function CustomerEnquiries() {
   const fetchEnquiries = async () => {
     try {
       setLoading(true);
-      const res = await getEnquiries("user", page, limit);
+      const res = await getEnquiries("USER", page, limit);
       setData(res.data.data);
       setTotalPages(res.data.meta.totalPages);
     } catch (err) {

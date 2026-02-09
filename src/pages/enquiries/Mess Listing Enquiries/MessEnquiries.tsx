@@ -19,7 +19,7 @@ export default function MessEnquiries() {
   const fetchEnquiries = async () => {
     try {
       setLoading(true);
-      const res = await getEnquiries("messowner", page, limit);
+      const res = await getEnquiries("MESS_OWNER", page, limit);
       setData(res.data.data);
       setTotalPages(res.data.meta.totalPages);
     } catch (err) {

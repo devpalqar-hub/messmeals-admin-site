@@ -11,7 +11,7 @@
   cursor: pointer;
   margin-bottom: 20px;
   font-weight: 700;
-  color:black;
+  color: black;
 }
 
 /* Card */
@@ -47,17 +47,20 @@
   margin-top: 20px;
 }
 
-/* Inputs */
-label {
+/* ========================= */
+/* SCOPED INPUT STYLES */
+/* ========================= */
+
+.wrapper label {
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 6px;
   display: block;
 }
 
-input,
-textarea,
-select {
+.wrapper input,
+.wrapper textarea,
+.wrapper select {
   width: 100%;
   padding: 10px 14px;
   border-radius: 10px;
@@ -65,16 +68,17 @@ select {
   background: #f9fafb;
   font-size: 14px;
   outline: none;
+  transition: 0.2s ease;
 }
 
-input:focus,
-textarea:focus,
-select:focus {
+.wrapper input:focus,
+.wrapper textarea:focus,
+.wrapper select:focus {
   border-color: #22c55e;
   background: white;
 }
 
-textarea {
+.wrapper textarea {
   min-height: 100px;
   resize: none;
 }
@@ -139,6 +143,7 @@ textarea {
   align-items: center;
   gap: 16px;
 }
+
 .iconBtn {
   width: 42px;
   height: 42px;
@@ -164,7 +169,12 @@ textarea {
   border-radius: 8px;
   cursor: pointer;
 }
- .emptyState {
+
+.addSmallBtn:hover {
+  background: #e2e8f0;
+}
+
+.emptyState {
   margin-top: 12px;
   padding: 16px;
   border-radius: 8px;
@@ -174,9 +184,6 @@ textarea {
   color: #64748b;
 }
 
-.addSmallBtn:hover {
-  background: #e2e8f0;
-}
 /* Inline input (Food/Tags) */
 .inlineInput {
   display: flex;
@@ -190,6 +197,8 @@ textarea {
   background: #f1f5f9;
   cursor: pointer;
 }
+
+/* Tags */
 .tagList {
   display: flex;
   flex-wrap: wrap;
@@ -201,17 +210,13 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-
   padding: 8px 14px;
   border-radius: 999px;
-
   background-color: #f1f5f3;
   border: 1px solid #d9e2dc;
-
   font-size: 13px;
   font-weight: 500;
   color: #1f2937;
-
   transition: all 0.2s ease;
 }
 
@@ -224,14 +229,11 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: center;
-
   width: 18px;
   height: 18px;
-
   border-radius: 50%;
   border: none;
   background: #d1d5db;
-
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -261,6 +263,7 @@ textarea {
   font-size: 13px;
   color: #64748b;
 }
+
 .fileList {
   margin-top: 16px;
   display: flex;
@@ -282,7 +285,7 @@ textarea {
   height: 100%;
   object-fit: cover;
 }
-/* Remove button */
+
 .removeBtn {
   position: absolute;
   top: 6px;
@@ -303,6 +306,7 @@ textarea {
 .removeBtn:hover {
   background: #ef4444;
 }
+
 /* Actions */
 .actions {
   display: flex;

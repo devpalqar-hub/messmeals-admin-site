@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import api from "../../api/axios";
 import { updateMess } from "../../api/editMess.api";
 import { useToast } from "../../components/ui/Toast/ToastContainer";
-
+import { updateMessImages, deleteMessImage } from "../../api/editMess.api";
 
 export default function EditMess() {
   const navigate = useNavigate();
@@ -85,7 +85,8 @@ const formatLabel = (value: string) =>
 
   const [foodTypes, setFoodTypes] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
-  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [existingImages, setExistingImages] = useState<{ id: string; url: string }[]>([]);
+  const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
 
   /* ---------------- FETCH MESS DATA ---------------- */
 
@@ -95,6 +96,7 @@ useEffect(() => {
       if (!id) return;
 
       const res = await api.get(`/mess/${id}`);
+      console.log("MESS DATA:", res.data);
       const data = res.data;
 
       // 🔥 Set form
@@ -133,12 +135,14 @@ useEffect(() => {
         ...(data.openingHours || {}),
       });
       // 🔥 Fetch existing images
-        if (data.images && data.images.length > 0) {
-        const imageUrls = data.images.map((img: any) =>
-            `https://your-api.com/uploads/${img.image}`
-        );
-
-        setExistingImages(imageUrls);
+        // 🔥 Fetch existing images (CORRECT VERSION)
+      if (data.images && data.images.length > 0) {
+          setExistingImages(
+            data.images.map((img: any) => ({
+              id: img.id,
+              url: img.url,
+            }))
+          );
         }
 
 
@@ -151,6 +155,7 @@ useEffect(() => {
 
   fetchMess();
 }, [id]);
+
 const [images, setImages] = useState<File[]>([]);
 const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   if (!e.target.files) return;
@@ -180,31 +185,53 @@ const removeImage = (index: number) => {
   };
 
   const handleUpdate = async () => {
-    try {
-      if (!id) return;
+  try {
+    if (!id) return;
 
-      const payload = {
-        name: form.name,
-        description: form.description,
-        address: form.address,
-        phone: form.phone,
-        email: form.email,
-        is_active: form.is_active,
-        is_verified: form.is_verified,
-        isPremium: form.isPremium,
-        location: form.location,
-        districtId: form.districtId,
-        openingHours,
-        foodTypes,
-        tags,
-        features: [],
-      };
+    if (existingImages.length === 0 && images.length === 0) {
+      showToast("At least one image is required", "error");
+      return;
+    }
 
-      await updateMess(id, payload);
-      showToast("Mess updated successfully", "success");
+    const payload = {
+      name: form.name,
+      description: form.description,
+      address: form.address,
+      phone: form.phone,
+      email: form.email,
+      is_active: form.is_active,
+      is_verified: form.is_verified,
+      isPremium: form.isPremium,
+      location: form.location,
+      districtId: form.districtId,
+      openingHours,
+      foodTypes,
+      tags,
+      features: [],
+    };
 
-      navigate("/messes");
-    } catch (error: any) {
+    // ✅ 1️⃣ Delete removed images FIRST
+    if (deletedImageIds.length > 0) {
+      await Promise.all(
+        deletedImageIds.map((imageId) =>
+          deleteMessImage(id, imageId)
+        )
+      );
+    }
+
+    // ✅ 2️⃣ Upload new images SECOND
+    if (images.length > 0) {
+      console.log("Images being uploaded:", images);
+      await updateMessImages(id, images);
+    }
+
+    // ✅ 3️⃣ Update mess details LAST
+    await updateMess(id, payload);
+
+    showToast("Mess updated successfully", "success");
+    navigate("/messes");
+
+  } catch (error: any) {
     console.error("Update failed", error);
 
     let errorMessage = "Something went wrong";
@@ -219,11 +246,15 @@ const removeImage = (index: number) => {
 
     showToast(errorMessage, "error");
   }
-  };
+};
+
+
 
     const [districts, setDistricts] = useState<
     { id: string; name: string }[]
   >([]);
+
+
 useEffect(() => {
 
   const fetchDistricts = async () => {
@@ -239,7 +270,6 @@ useEffect(() => {
 
   fetchDistricts();
 }, []);
-
 
   if (loading) return <div style={{ padding: 20 }}>Loading...</div>;
 
@@ -505,7 +535,7 @@ useEffect(() => {
               {existingImages.map((img, index) => (
                 <div key={`existing-${index}`} className={styles.previewItem}>
                   <img
-                    src={img}
+                    src={img.url}
                     alt="existing"
                     className={styles.previewImage}
                   />
@@ -513,11 +543,17 @@ useEffect(() => {
                   <button
                     type="button"
                     className={styles.removeBtn}
-                    onClick={() =>
-                      setExistingImages((prev) =>
-                        prev.filter((_, i) => i !== index)
-                      )
-                    }
+                    onClick={() => {
+                        setDeletedImageIds((prev) => [
+                          ...prev,
+                          existingImages[index].id,
+                        ]);
+
+                        setExistingImages((prev) =>
+                          prev.filter((_, i) => i !== index)
+                        );
+                      }}
+
                   >
                     ×
                   </button>

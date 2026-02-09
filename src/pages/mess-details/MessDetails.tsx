@@ -1,5 +1,5 @@
 import styles from "./MessDetails.module.css";
-import { LuArrowLeft, LuCalendar, LuIndianRupee, LuMail, LuMapPin, LuPackage, LuPackageCheck, LuPencil, LuPhone, LuTrash, LuTruck } from "react-icons/lu";
+import { LuArrowLeft, LuCalendar, LuIndianRupee, LuMail, LuMapPin, LuPackage, LuPackageCheck, LuPencil, LuPhone, LuTruck } from "react-icons/lu";
 import { useNavigate, useParams } from "react-router-dom";
 import StatCard from "../../components/ui/StatCard/StatCard";
 import { useEffect, useState } from "react";
@@ -158,42 +158,116 @@ if (!mess) return <p>Mess not found</p>;
       </div>
 
       {/* MESS ADMINS */}
-      <div className={styles.card}>
-        <h3>Mess Admins (1)</h3>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Admin</th>
-              <th>Email</th>
-              <th>Phone</th>
-              <th>Status</th>
-              <th>Added On</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td>Fayas</td>
-              <td>fayas@gmail.com</td>
-              <td>9995602471</td>
-              <td><span className={styles.active}>Active</span></td>
-              <td>Jan 27, 2026</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+        <div className={styles.card}>
+          <h3>Mess Admins ({mess?.messAdmins?.length || 0})</h3>
 
-      {/* EMPTY SECTIONS */}
+          {mess?.messAdmins && mess.messAdmins.length > 0 ? (
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Admin</th>
+                  <th>Email</th>
+                  <th>Phone</th>
+                  <th>Status</th>
+                  <th>Added On</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mess.messAdmins.map((admin) => (
+                  <tr key={admin.id}>
+                    <td>{admin.user?.name || "-"}</td>
+                    <td>{admin.user?.email || "-"}</td>
+                    <td>{admin.user?.phone || "-"}</td>
+
+                    {/* Status (hardcoded because backend doesn't send it) */}
+                    <td>
+                      <span className={styles.active}>Active</span>
+                    </td>
+
+                    <td>
+                      {new Date(admin.createdAt).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className={styles.emptyState}>
+              No admins assigned yet.
+            </div>
+          )}
+        </div>
+
+
       <div className={styles.row}>
-        <div className={styles.card}>
-          <h3>Active Subscriptions</h3>
-          <p>No active subscriptions.</p>
-        </div>
 
-        <div className={styles.card}>
-          <h3>Delivery Partners</h3>
-          <p>No delivery partners assigned.</p>
-        </div>
-      </div>
+            {/* ACTIVE SUBSCRIPTIONS */}
+            <div className={styles.card}>
+              <h3>Active Subscriptions ({mess?.UserSubscriptions?.length || 0})</h3>
+
+              {mess?.UserSubscriptions?.length ? (
+                <ul className={styles.list}>
+                  {mess.UserSubscriptions
+                    .filter((sub: any) => sub.isActive)
+                    .map((sub: any) => (
+                      <li key={sub.id}>
+                        <div>
+                          <strong>Schedule:</strong> {sub.scheduleType}
+                        </div>
+
+                        <div>
+                          <strong>Days:</strong>{" "}
+                          {sub.selectedDays?.join(", ") || "-"}
+                        </div>
+
+                        <div>
+                          <strong>Start:</strong>{" "}
+                          {new Date(sub.start_date).toLocaleDateString("en-IN")}
+                        </div>
+                      </li>
+                    ))}
+                </ul>
+              ) : (
+                <p className={styles.empty}>No active subscriptions.</p>
+              )}
+            </div>
+            {/* DELIVERY PARTNERS */}
+            <div className={styles.card}>
+              <h3>Delivery Partners ({mess?.DeliveryPartnerProfile?.length || 0})</h3>
+              {mess?.DeliveryPartnerProfile?.length ? (
+                <ul className={styles.list}>
+                  {mess.DeliveryPartnerProfile.map((partner: any) => (
+                    <li key={partner.id}>
+                      <div>
+                        <strong>Status:</strong>{" "}
+                        <span
+                          className={
+                            partner.isonline
+                              ? styles.active
+                              : styles.inactive
+                          }
+                        >
+                          {partner.isonline ? "Online" : "Offline"}
+                        </span>
+                      </div>
+
+                      <div>
+                        <strong>Address:</strong> {partner.address || "-"}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className={styles.empty}>
+                  No delivery partners assigned.
+                </p>
+              )}
+            </div>
+          </div>
 
       {/* GALLERY */}
       <div className={styles.card}>

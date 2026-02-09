@@ -1,45 +1,83 @@
+/* MAIN WRAPPER */
 .container {
+  min-height: 100vh;
   display: flex;
-  align-items: stretch;
-  height: 100vh;
-  font-family: system-ui, sans-serif;
+  background: #edecec;
+  padding: 40px;
+  gap: 0;
+
+  overflow: hidden;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.08);
 }
 
-/* LEFT PANEL */
+/* Actual image container */
+.imageWrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 24px;
+  overflow: hidden;   /* 🔥 THIS FIXES THE CORNERS */
+  background: url("/loginimg1.png");
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  padding: 90px;
+}
 
-.left {
-  max-width: 50%;
-  background: linear-gradient(135deg, #16a34a, #22c55e);
+.imageOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.25) 0%,
+    rgba(0, 0, 0, 0.45) 60%,
+    rgba(0, 0, 0, 0.6) 100%
+  );
+}
+
+/* Content above overlay */
+.leftContent {
+  position: relative;
+  z-index: 2;
   color: white;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  flex: 1;
-  padding-left: 70px;
+  max-width: 500px;
 }
-
+/* BRAND */
 .brand {
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-bottom: 40px;
+  font-weight: 600;
 }
 
 .logo {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 8px;
-  border-radius: 10px;
+  font-size: 22px;
 }
-
+/* HEADING */
 .left h1 {
-  font-size: 48px;
-  margin-top: 40px;
+  font-size: 52px;
+  font-weight: 600;
+  letter-spacing: -1px;
+  margin-bottom: 18px;
 }
 
+/* Paragraph */
 .left p {
-  opacity: 0.9;
-  max-width: 400px;
-  line-height: 1.6;
+  font-size: 17px;
+  line-height: 1.7;
+  max-width: 480px;
+  opacity: 0.85;
+  font-weight: 400;
 }
+.left p {
+  font-size: 18px;
+  line-height: 1.6;
+  max-width: 500px;
+  opacity: 0.9;
+}
+/* RIGHT PANEL */
 /* RIGHT PANEL */
 
 .right {
@@ -48,44 +86,65 @@
   justify-content: center;
   align-items: center;
   flex-direction: column;
+  padding: 60px;
 }
 
 .form {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
 }
 
+/* TITLE */
+
 .right h2 {
-  font-size: 32px;
+  font-size: 36px;
+  font-weight: 700;
+  margin-bottom: 10px;
 }
 
 .subtitle {
   color: #6b7280;
-  margin-bottom: 30px;
+  margin-bottom: 35px;
+  font-size: 15px;
 }
 
-/* INPUTS */
+/* LABEL */
 
 .form label {
   font-weight: 500;
-  margin-top: 15px;
+  margin-top: 20px;
   display: block;
+  font-size: 14px;
 }
+
+/* PILL INPUT STYLE */
 
 .inputfield {
   display: flex;
   align-items: center;
-  gap: 10px;
-  border: 1px solid #e5e7eb;
-  padding: 12px;
-  border-radius: 10px;
+  gap: 12px;
+  padding: 14px 20px;
   margin-top: 8px;
+  border-radius: 999px;          /* makes it fully rounded */
+  background: #f3f4f6;           /* soft grey background */
+  border: 1px solid #e5e7eb;     /* soft border */
+  transition: all 0.3s ease;
 }
 
+/* Remove inner box feeling */
 .inputfield input {
   border: none;
   outline: none;
   width: 100%;
+  background: transparent;       /* important */
+  font-size: 15px;
+}
+
+/* Focus effect */
+.inputfield:focus-within {
+  background: white;
+  border-color: #111827;
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.05);
 }
 
 .eye {
@@ -93,42 +152,22 @@
   color: #9ca3af;
 }
 
-.error {
-  background: #fee2e2;
-  color: #b91c1c;
-  padding: 10px;
-  border-radius: 8px;
-  margin: 10px 0;
-  font-size: 14px;
-}
-
-
-/* BUTTON */
+/* BUTTON (black pill like image) */
 
 .form button {
   width: 100%;
-  padding: 14px;
-  background: #16a34a;
+  padding: 16px;
+  background: #1b4332;
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: 999px;      /* pill */
   font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
-  margin-top: 20px;
+  margin-top: 30px;
+  transition: 0.3s ease;
 }
 
 .form button:hover {
-  background: #15803d;
-}
-
-/* RESPONSIVE */
-
-@media (max-width: 900px) {
-  .left {
-    display: none;
-  }
-
-  .right {
-    width: 100%;
-  }
+  background: #1b4332;
 }
