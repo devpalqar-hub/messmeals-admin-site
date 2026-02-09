@@ -4,11 +4,14 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import api from "../../api/axios";
 import { updateMess } from "../../api/editMess.api";
+import { useToast } from "../../components/ui/Toast/ToastContainer";
+
 
 export default function EditMess() {
   const navigate = useNavigate();
   const { id } = useParams();
 
+const { showToast } = useToast();
 
 
   /* ---------------- FORM STATE ---------------- */
@@ -198,17 +201,31 @@ const removeImage = (index: number) => {
       };
 
       await updateMess(id, payload);
+      showToast("Mess updated successfully", "success");
 
       navigate("/messes");
-    } catch (error) {
-      console.error("Update failed", error);
+    } catch (error: any) {
+    console.error("Update failed", error);
+
+    let errorMessage = "Something went wrong";
+
+    if (error.response?.data?.message) {
+      if (Array.isArray(error.response.data.message)) {
+        errorMessage = error.response.data.message.join(", ");
+      } else {
+        errorMessage = error.response.data.message;
+      }
     }
+
+    showToast(errorMessage, "error");
+  }
   };
 
-  const [districts, setDistricts] = useState<
-  { id: string; name: string }[]
->([]);
+    const [districts, setDistricts] = useState<
+    { id: string; name: string }[]
+  >([]);
 useEffect(() => {
+
   const fetchDistricts = async () => {
     try {
       const res = await api.get("/districts");
@@ -239,6 +256,7 @@ useEffect(() => {
         <h3>Edit Mess</h3>
 
         <div className={styles.grid}>
+    
           <div>
             <label>Mess Name *</label>
             <input name="name" value={form.name} onChange={handleChange} />
@@ -370,180 +388,175 @@ useEffect(() => {
       </div>
 
       {/* FOOD TYPES */}
-<div className={styles.card}>
-  <h3>Food Types</h3>
+          <div className={styles.card}>
+            <h3>Food Types</h3>
 
-  <select
-    value=""
-    onChange={(e) => {
-      const value = e.target.value;
-      if (!value || foodTypes.includes(value)) return;
-      setFoodTypes((prev) => [...prev, value]);
-    }}
-  >
-    <option value="">Select Food Type</option>
-    {FOOD_TYPE_OPTIONS.map((type) => (
-      <option key={type} value={type}>
-        {formatLabel(type)}
-      </option>
-    ))}
-  </select>
+            <select
+              value=""
+              onChange={(e) => {
+                const value = e.target.value;
+                if (!value || foodTypes.includes(value)) return;
+                setFoodTypes((prev) => [...prev, value]);
+              }}
+            >
+              <option value="">Select Food Type</option>
+              {FOOD_TYPE_OPTIONS.map((type) => (
+                <option key={type} value={type}>
+                  {formatLabel(type)}
+                </option>
+              ))}
+            </select>
 
-  <div className={styles.tagList}>
-    {foodTypes.length === 0 ? (
-      <p className={styles.emptyText}>No food types selected</p>
-    ) : (
-      foodTypes.map((item) => (
-        <div key={item} className={styles.tag}>
-          <span>{formatLabel(item)}</span>
+            <div className={styles.tagList}>
+              {foodTypes.length === 0 ? (
+                <p className={styles.emptyText}>No food types selected</p>
+              ) : (
+                foodTypes.map((item) => (
+                  <div key={item} className={styles.tag}>
+                    <span>{formatLabel(item)}</span>
 
-          <button
-            type="button"
-            className={styles.tagClose}
-            onClick={() =>
-              setFoodTypes((prev) =>
-                prev.filter((type) => type !== item)
-              )
-            }
-          >
-            ×
-          </button>
-        </div>
-      ))
-    )}
-  </div>
-</div>
-
+                    <button
+                      type="button"
+                      className={styles.tagClose}
+                      onClick={() =>
+                        setFoodTypes((prev) =>
+                          prev.filter((type) => type !== item)
+                        )
+                      }
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
 
       {/* TAGS */}
-<div className={styles.card}>
-  <h3>Tags</h3>
+            <div className={styles.card}>
+              <h3>Tags</h3>
 
-  <select
-    value=""
-    onChange={(e) => {
-      const value = e.target.value;
-      if (!value || tags.includes(value)) return;
-      setTags((prev) => [...prev, value]);
-    }}
-  >
-    <option value="">Select Tag</option>
-    {TAG_OPTIONS.map((tag) => (
-      <option key={tag} value={tag}>
-        {formatLabel(tag)}
-      </option>
-    ))}
-  </select>
+              <select
+                value=""
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (!value || tags.includes(value)) return;
+                  setTags((prev) => [...prev, value]);
+                }}
+              >
+                <option value="">Select Tag</option>
+                {TAG_OPTIONS.map((tag) => (
+                  <option key={tag} value={tag}>
+                    {formatLabel(tag)}
+                  </option>
+                ))}
+              </select>
 
-  <div className={styles.tagList}>
-    {tags.length === 0 ? (
-      <p className={styles.emptyText}>No tags selected</p>
-    ) : (
-      tags.map((item) => (
-        <div key={item} className={styles.tag}>
-          <span>{formatLabel(item)}</span>
+              <div className={styles.tagList}>
+                {tags.length === 0 ? (
+                  <p className={styles.emptyText}>No tags selected</p>
+                ) : (
+                  tags.map((item) => (
+                    <div key={item} className={styles.tag}>
+                      <span>{formatLabel(item)}</span>
 
+                      <button
+                        type="button"
+                        className={styles.tagClose}
+                        onClick={() =>
+                          setTags((prev) =>
+                            prev.filter((tag) => tag !== item)
+                          )
+                        }
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+            {/* IMAGES */}
+            <div className={styles.card}>
+              <h3>Images</h3>
+
+              <div className={styles.uploadBox}>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/png, image/jpeg"
+                  onChange={handleImageChange}
+                  className={styles.hiddenInput}
+                  id="imageUpload"
+                />
+
+                <label htmlFor="imageUpload" className={styles.uploadLabel}>
+                  <div className={styles.uploadContent}>
+                    <p>Drag & drop images here or click to upload</p>
+                    <span>PNG, JPG up to 5MB</span>
+                  </div>
+                </label>
+              </div>
+
+              {/* Preview */}
+            <div className={styles.previewGrid}>
+
+              {/* Existing Images */}
+              {existingImages.map((img, index) => (
+                <div key={`existing-${index}`} className={styles.previewItem}>
+                  <img
+                    src={img}
+                    alt="existing"
+                    className={styles.previewImage}
+                  />
+
+                  <button
+                    type="button"
+                    className={styles.removeBtn}
+                    onClick={() =>
+                      setExistingImages((prev) =>
+                        prev.filter((_, i) => i !== index)
+                      )
+                    }
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+
+                {/* Newly Selected Images */}
+                {images.map((file, index) => (
+                  <div key={`new-${index}`} className={styles.previewItem}>
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt="preview"
+                      className={styles.previewImage}
+                    />
+
+                    <button
+                      type="button"
+                      className={styles.removeBtn}
+                      onClick={() => removeImage(index)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+      {/* ACTIONS */}
+        <div className={styles.actions}>
           <button
-            type="button"
-            className={styles.tagClose}
-            onClick={() =>
-              setTags((prev) =>
-                prev.filter((tag) => tag !== item)
-              )
-            }
+            className={styles.cancel}
+            onClick={() => navigate("/messes")}
           >
-            ×
+            Cancel
+          </button>
+
+          <button className={styles.create} onClick={handleUpdate}>
+            Update Mess
           </button>
         </div>
-      ))
-    )}
-  </div>
-</div>
-{/* IMAGES */}
-<div className={styles.card}>
-  <h3>Images</h3>
-
-  <div className={styles.uploadBox}>
-    <input
-      type="file"
-      multiple
-      accept="image/png, image/jpeg"
-      onChange={handleImageChange}
-      className={styles.hiddenInput}
-      id="imageUpload"
-    />
-
-    <label htmlFor="imageUpload" className={styles.uploadLabel}>
-      <div className={styles.uploadContent}>
-        <p>Drag & drop images here or click to upload</p>
-        <span>PNG, JPG up to 5MB</span>
       </div>
-    </label>
-  </div>
-
-  {/* Preview */}
-<div className={styles.previewGrid}>
-
-  {/* Existing Images */}
-  {existingImages.map((img, index) => (
-    <div key={`existing-${index}`} className={styles.previewItem}>
-      <img
-        src={img}
-        alt="existing"
-        className={styles.previewImage}
-      />
-
-      <button
-        type="button"
-        className={styles.removeBtn}
-        onClick={() =>
-          setExistingImages((prev) =>
-            prev.filter((_, i) => i !== index)
-          )
-        }
-      >
-        ×
-      </button>
-    </div>
-  ))}
-
-  {/* Newly Selected Images */}
-  {images.map((file, index) => (
-    <div key={`new-${index}`} className={styles.previewItem}>
-      <img
-        src={URL.createObjectURL(file)}
-        alt="preview"
-        className={styles.previewImage}
-      />
-
-      <button
-        type="button"
-        className={styles.removeBtn}
-        onClick={() => removeImage(index)}
-      >
-        ×
-      </button>
-    </div>
-  ))}
-
-</div>
-
-</div>
-
-
-      {/* ACTIONS */}
-      <div className={styles.actions}>
-        <button
-          className={styles.cancel}
-          onClick={() => navigate("/messes")}
-        >
-          Cancel
-        </button>
-
-        <button className={styles.create} onClick={handleUpdate}>
-          Update Mess
-        </button>
-      </div>
-    </div>
-  );
-}
+    );
+  }
