@@ -23,6 +23,7 @@ export const updateMess = async (
 ) => {
   return api.patch(`/mess/${id}`, data);
 };
+
 export const updateMessImages = (id: string, files: File[]) => {
   const formData = new FormData();
 
@@ -41,9 +42,45 @@ export const updateMessImages = (id: string, files: File[]) => {
   );
 };
 
+export const updateMessCoverImage = (id: string, file: File) => {
+  const formData = new FormData();
+
+  // Backend expects key: "file"
+  formData.append("file", file);
+
+  return api.post(`/mess/${id}/cover/image`, formData);
+};
+
+
+// export const updateMessCoverImage = (
+//   id: string,
+//   file: File
+// ) => {
+//   const formData = new FormData();
+//   formData.append("file", file); // must match backend field name
+
+//   return api.post(`/mess/${id}/cover/image`, formData);
+// };
+
 
 export const deleteMessImage = (messId: string, imageId: string) => {
   return api.delete(
     `/mess/${messId}/gallery/images/${imageId}`
   );
+};
+
+
+export const updatePlan = async (
+  id: string,
+  data: {
+    planName: string;
+    price: number;
+    minPrice: number;
+    description: string;
+    variationIds: string[];
+    isMonthlyPlan: boolean;
+    isDailyPlan: boolean;
+  }
+) => {
+  return api.patch(`/plans/${id}`, data);
 };

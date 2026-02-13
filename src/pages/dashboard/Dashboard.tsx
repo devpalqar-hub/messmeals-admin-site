@@ -130,11 +130,45 @@ const Dashboard = () => {
         />
       </div>
 
-      <div className={styles.chartCard}>
-        <h3>Monthly Revenue</h3>
-        <MonthlyRevenueChart data={monthlyRevenue} />
-      </div>
+      <div className={styles.analyticsRow}>
+          <div className={styles.chartCard}>
+            <h3>Total Revenue</h3>
+            <MonthlyRevenueChart data={monthlyRevenue} />
+          </div>
 
+          <div className={styles.topSellingCard}>
+            <div className={styles.cardHeader}>
+              <h3>Top Mess</h3>
+              <span className={styles.viewAll}>View all</span>
+            </div>
+
+            <div className={styles.dishList}>
+              <div className={styles.dishItem}>
+                <img src="/dish1.jpg" alt="dish" />
+                <div className={styles.dishInfo}>
+                  <h4>Cheese & Corn Momos</h4>
+                  <p>₹125</p>
+                </div>
+              </div>
+
+              <div className={styles.dishItem}>
+                <img src="/dish2.jpg" alt="dish" />
+                <div className={styles.dishInfo}>
+                  <h4>French Fry</h4>
+                  <p>₹125</p>
+                </div>
+              </div>
+
+              <div className={styles.dishItem}>
+                <img src="/dish3.jpg" alt="dish" />
+                <div className={styles.dishInfo}>
+                  <h4>Cheese Burger</h4>
+                  <p>₹125</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
     </div>
   );
 };

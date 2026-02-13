@@ -11,7 +11,7 @@ export interface Mess {
   createdAt: string;
 }
 
-export interface MessDetails {
+export interface MessDetailsResponse {
   id: string;
   name: string;
   description: string;
@@ -83,4 +83,18 @@ export const getMessStats = (
       ...(date1 && { date1 }), // only add date1 if provided
     },
   });
+};
+
+export const deleteUserSubscription = (id: string) => {
+  return api.delete(`/user-subscriptions/${id}`);
+};
+
+export const updateUserSubscription = (
+  id: string,
+  payload: any
+) => {
+  return api.patch(`/user-subscriptions/${id}`, payload);
+};
+export const deletePlan = (planId: string) => {
+  return api.delete(`/plans/${planId}`);
 };

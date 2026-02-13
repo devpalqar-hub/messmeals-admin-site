@@ -3,15 +3,46 @@ import { LuArrowLeft, LuCalendar, LuIndianRupee, LuMail, LuMapPin, LuPackage, Lu
 import { useNavigate, useParams } from "react-router-dom";
 import StatCard from "../../components/ui/StatCard/StatCard";
 import { useEffect, useState } from "react";
-import { getMessById, getMessStats, type MessDetails, type MessStats } from "../../api/mess.api";
+import { getMessById, getMessStats, type MessDetailsResponse, type MessStats } from "../../api/mess.api";
+
+import { deleteUserSubscription } from "../../api/mess.api";
+import { LuTrash2} from "react-icons/lu";
+import { updateUserSubscription } from "../../api/mess.api";
+import ConfirmModal from "../../components/ui/ConfirmModal/ConfirmModal";
+import { deletePlan } from "../../api/mess.api";
+
+
+
 
 const MessDetails = () => {
 const navigate = useNavigate();
 const { id } = useParams();
-const [mess, setMess] = useState<MessDetails | null>(null);
+const [mess, setMess] = useState<MessDetailsResponse | null>(null);
+
 const [stats, setStats] = useState<MessStats | null>(null);
 
 const [loading, setLoading] = useState(true);
+const [deleteSub, setDeleteSub] = useState<any>(null);
+const [editingSub, setEditingSub] = useState<any>(null);
+const [editForm, setEditForm] = useState<any>({
+  scheduleType: "",
+  selectedDays: [],
+  start_date: "",
+});
+
+const DAYS = [
+  "SUNDAY",
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+  "SATURDAY",
+];
+const scheduleMap: Record<string, string> = {
+  DAILY: "EVERYDAY",  // if backend supports this
+  CUSTOM: "CUSTOM",
+};
 
 const safeStats = stats ?? {
   totalRevenue: 0,
@@ -22,6 +53,8 @@ const safeStats = stats ?? {
   totalPartners: 0,
   activePartners: 0,
 };
+
+const [deletePlanId, setDeletePlanId] = useState<string | null>(null);
 
 
 useEffect(() => {
@@ -63,15 +96,17 @@ if (!mess) return <p>Mess not found</p>;
         <div className={styles.left}>
           <LuArrowLeft onClick={() => navigate(-1)} />
           <h2>{mess.name}</h2>
-          <span className={mess.is_active ? styles.active : styles.inactive}>
+          <span
+            className={`${styles.status} ${
+              mess.is_active ? styles.active : styles.inactive
+            }`}
+          >
             {mess.is_active ? "Active" : "Inactive"}
           </span>
+
         </div>
 
         <div className={styles.actions}>
-          <button className={styles.edit}>
-            <LuPencil /> Edit
-          </button>
         </div>
       </div>
 
@@ -81,40 +116,47 @@ if (!mess) return <p>Mess not found</p>;
             title="Total Revenue"
             value={`₹${safeStats.totalRevenue.toLocaleString("en-IN")}`}
             icon={<LuIndianRupee />}
+            variant="revenue"
           />
 
           <StatCard
             title="Total Orders"
             value={safeStats.totalOrders.toString()}
             icon={<LuPackage />}
+             variant="orders"
           />
 
           <StatCard
             title="Completed Orders"
             value={safeStats.completedOrders.toString()}
             icon={<LuPackageCheck />}
+            variant="completed"
           />
 
           <StatCard
             title="Pending Revenue"
             value={`₹${safeStats.pendingRevenue.toLocaleString("en-IN")}`}
             icon={<LuIndianRupee />}
+            variant="pending"
           />
 
           <StatCard
             title="Today's Revenue"
             value={`₹${safeStats.todaysRevenue.toLocaleString("en-IN")}`}
             icon={<LuIndianRupee />}
+            variant="today"
           />
           <StatCard
             title="Total Partners"
             value={safeStats.totalPartners.toString()}
             icon={<LuTruck />}
+            variant="partners"
           />
           <StatCard
             title="Active Partners"
             value={safeStats.activePartners.toString()}
             icon={<LuTruck />}
+            variant="active"
           />
 
       </div>
@@ -152,9 +194,87 @@ if (!mess) return <p>Mess not found</p>;
 
         </div>
         <div className={styles.card}>
-          <h3>Meal Plans</h3>
-          <p>No plans configured yet.</p>
+  <h3>Meal Plans ({mess.plans?.length || 0})</h3>
+
+  {mess.plans && mess.plans.length > 0 ? (
+    <div className={styles.planGrid}>
+      {mess.plans.map((plan: any) => (
+        <div key={plan.id} className={styles.planCard}>
+
+          {/* Header */}
+          <div className={styles.planHeader}>
+            <h4>{plan.planName}</h4>
+
+            <div className={styles.planHeaderRight}>
+              <div className={styles.priceBox}>
+                ₹{Number(plan.price).toLocaleString("en-IN")}
+              </div>
+
+              <button
+                className={styles.deletePlanBtn}
+                onClick={() => setDeletePlanId(plan.id)}
+              >
+                <LuTrash2 size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* Min price */}
+          {plan.minPrice && (
+            <p className={styles.minPrice}>
+              Min: ₹{Number(plan.minPrice).toLocaleString("en-IN")}
+            </p>
+          )}
+
+          {/* Description */}
+          {plan.description && (
+            <p className={styles.planDescription}>
+              {plan.description}
+            </p>
+          )}
+
+          {/* Plan Type */}
+          <div className={styles.planTags}>
+            {plan.isMonthlyPlan && (
+              <span className={styles.tagGreen}>Monthly</span>
+            )}
+            {plan.isDailyPlan && (
+              <span className={styles.tagBlue}>Daily</span>
+            )}
+          </div>
+
+          {/* Variations */}
+          {plan.Variation?.length > 0 && (
+            <div className={styles.variationChips}>
+              {plan.Variation.map((v: any) => (
+                <span key={v.id} className={styles.chip}>
+                  {v.title}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Images */}
+          {plan.images?.length > 0 && (
+            <div className={styles.planImageGrid}>
+              {plan.images.map((img: any) => (
+                <img
+                  key={img.id}
+                  src={img.url}
+                  alt="plan"
+                  className={styles.planImage}
+                />
+              ))}
+            </div>
+          )}
         </div>
+      ))}
+    </div>
+  ) : (
+    <p className={styles.empty}>No plans configured yet.</p>
+  )}
+</div>
+
       </div>
 
       {/* MESS ADMINS */}
@@ -214,7 +334,7 @@ if (!mess) return <p>Mess not found</p>;
                   {mess.UserSubscriptions
                     .filter((sub: any) => sub.isActive)
                     .map((sub: any) => (
-                      <li key={sub.id}>
+                      <li key={sub.id} className={styles.subscriptionItem}>
                         <div>
                           <strong>Schedule:</strong> {sub.scheduleType}
                         </div>
@@ -228,6 +348,32 @@ if (!mess) return <p>Mess not found</p>;
                           <strong>Start:</strong>{" "}
                           {new Date(sub.start_date).toLocaleDateString("en-IN")}
                         </div>
+
+                        <div className={styles.actions}>
+                            <button
+                              className={styles.iconBtn}
+                              onClick={() => {
+                                setEditingSub(sub);
+                                setEditForm({
+                                  scheduleType: sub.scheduleType,
+                                  selectedDays: sub.selectedDays || [],
+                                  start_date: sub.start_date.split("T")[0],
+                                });
+                              }}
+                            >
+                              <LuPencil size={18} />
+                            </button>
+
+                            <button
+                              className={`${styles.iconBtn} ${styles.deleteBtn}`}
+                              onClick={() => {
+                                setDeleteSub(sub); // open modal
+                              }}
+                            >
+                              <LuTrash2 size={18} />
+                            </button>
+
+                          </div>
                       </li>
                     ))}
                 </ul>
@@ -269,7 +415,7 @@ if (!mess) return <p>Mess not found</p>;
             </div>
           </div>
 
-      {/* GALLERY */}
+            {/* GALLERY */}
       <div className={styles.card}>
         <h3>Gallery (1)</h3>
         {mess.images.length === 0 ? (
@@ -283,10 +429,171 @@ if (!mess) return <p>Mess not found</p>;
             />
           ))
         )}
-
       </div>
 
+      {/* 🔥 PASTE MODAL RIGHT HERE */}
+      {editingSub && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <h3>Edit Subscription</h3>
+
+            <label>Schedule Type</label>
+            <select
+              value={editForm.scheduleType}
+              onChange={(e) =>
+                setEditForm({ ...editForm, scheduleType: e.target.value })
+              }
+            >
+              <option value="EVERYDAY">Everyday</option>
+              <option value="CUSTOM">Custom</option>
+            </select>
+
+
+            <label>Start Date</label>
+            <input
+              type="date"
+              value={editForm.start_date}
+              onChange={(e) =>
+                setEditForm({ ...editForm, start_date: e.target.value })
+              }
+            />
+
+            <label>Selected Days</label>
+            <div className={styles.daysContainer}>
+                  {DAYS.map((day) => {
+                    const isSelected = editForm.selectedDays.includes(day);
+
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        className={`${styles.dayBtn} ${
+                          isSelected ? styles.selectedDay : ""
+                        }`}
+                        onClick={() => {
+                          if (isSelected) {
+                            // remove day
+                            setEditForm({
+                              ...editForm,
+                              selectedDays: editForm.selectedDays.filter(
+                                (d: string) => d !== day
+                              ),
+                            });
+                          } else {
+                            // add day
+                            setEditForm({
+                              ...editForm,
+                              selectedDays: [...editForm.selectedDays, day],
+                            });
+                          }
+                        }}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+            <div className={styles.modalActions}>
+              <button
+                onClick={async () => {
+                  try {
+                    const payload = {
+                      ...editForm,
+                      scheduleType: scheduleMap[editForm.scheduleType],
+                    };
+
+                    await updateUserSubscription(editingSub.id, payload);
+
+
+                    setMess((prev) => {
+                        if (!prev) return prev;
+
+                        return {
+                          ...prev,
+                          UserSubscriptions: prev.UserSubscriptions.map((s: any) =>
+                            s.id === editingSub.id
+                              ? { ...s, ...editForm }
+                              : s
+                          ),
+                        };
+                      });
+
+
+                    setEditingSub(null);
+                  } catch (err) {
+                    console.error("Update failed", err);
+                  }
+                }}
+              >
+                Save
+              </button>
+
+              <button onClick={() => setEditingSub(null)}>
+                <span>Cancel</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 🔥 DELETE CONFIRM MODAL — PASTE HERE */}
+      <ConfirmModal
+        open={!!deleteSub}
+        title="Delete Subscription"
+        message="Are you sure you want to delete this subscription? This action cannot be undone."
+        onCancel={() => setDeleteSub(null)}
+        onConfirm={async () => {
+          if (!deleteSub) return;
+
+          try {
+            await deleteUserSubscription(deleteSub.id);
+
+            setMess((prev) => ({
+              ...prev!,
+              UserSubscriptions: prev!.UserSubscriptions.filter(
+                (s: any) => s.id !== deleteSub.id
+              ),
+            }));
+
+            setDeleteSub(null);
+          } catch (err) {
+            console.error("Delete failed", err);
+            setDeleteSub(null);
+          }
+        }}
+      />
+      <ConfirmModal
+          open={!!deletePlanId}
+          title="Delete Plan"
+          message="Are you sure you want to delete this plan? This action cannot be undone."
+          onCancel={() => setDeletePlanId(null)}
+          onConfirm={async () => {
+            if (!deletePlanId) return;
+
+            try {
+              await deletePlan(deletePlanId);
+
+              // Remove plan from state
+              setMess((prev) => {
+                if (!prev) return prev;
+
+                return {
+                  ...prev,
+                  plans: prev.plans.filter(
+                    (p) => p.id !== deletePlanId
+                  ),
+                };
+              });
+
+              setDeletePlanId(null);
+            } catch (err) {
+              console.error("Failed to delete plan", err);
+              setDeletePlanId(null);
+            }
+          }}
+        />
+
     </div>
+    
   );
 };
 

@@ -6,12 +6,20 @@ import api from "../../api/axios";
 import { updateMess } from "../../api/editMess.api";
 import { useToast } from "../../components/ui/Toast/ToastContainer";
 import { updateMessImages, deleteMessImage } from "../../api/editMess.api";
+import { updateMessCoverImage,updatePlan } from "../../api/editMess.api";
+
 
 export default function EditMess() {
   const navigate = useNavigate();
   const { id } = useParams();
 
 const { showToast } = useToast();
+
+const [existingCover, setExistingCover] = useState<{ id: string; url: string } | null>(null);
+const [coverImage, setCoverImage] = useState<File | null>(null);
+const [coverPreview, setCoverPreview] = useState<string | null>(null);
+
+
 
 
   /* ---------------- FORM STATE ---------------- */
@@ -81,6 +89,83 @@ const formatLabel = (value: string) =>
   };
  const [loading, setLoading] = useState(true);
 
+
+
+   /* ---------------- PLANS ---------------- */
+   interface EditPlan {
+  id: string;
+  planName: string;
+  price: number;
+  minPrice: number;
+  description: string;
+  isMonthlyPlan: boolean;
+  isDailyPlan: boolean;
+  variationIds: string[];
+  // 🔥 ADD THIS
+  images: {
+    id: string;
+    url: string;
+  }[];
+}
+interface Variation {
+  id: string;
+  title: string;
+  isActive: boolean;
+}
+
+const [variationList, setVariationList] = useState<Variation[]>([]);
+
+const [plans, setPlans] = useState<EditPlan[]>([]);
+const [originalPlans, setOriginalPlans] = useState<EditPlan[]>([]);
+
+
+const handlePlanChange = (
+  index: number,
+  field: keyof EditPlan,
+  value: any
+) => {
+  setPlans((prev) => {
+    const updated = [...prev];
+    updated[index] = {
+      ...updated[index],
+      [field]: value,
+    };
+    return updated;
+  });
+};
+
+useEffect(() => {
+  const fetchVariations = async () => {
+    try {
+      const res = await api.get("/variation/");
+      setVariationList(res.data);
+    } catch (error) {
+      console.error("Failed to fetch variations", error);
+    }
+  };
+
+  fetchVariations();
+}, []);
+const handlePlanVariationChange = (
+  planIndex: number,
+  variationId: string
+) => {
+  setPlans((prev) => {
+    const updated = [...prev];
+
+    const currentIds = updated[planIndex].variationIds || [];
+
+    updated[planIndex] = {
+      ...updated[planIndex],
+      variationIds: currentIds.includes(variationId)
+        ? currentIds.filter((id) => id !== variationId)
+        : [...currentIds, variationId],
+    };
+
+    return updated;
+  });
+};
+
   /* ---------------- ARRAYS ---------------- */
 
   const [foodTypes, setFoodTypes] = useState<string[]>([]);
@@ -134,17 +219,48 @@ useEffect(() => {
         sunday: "closed",
         ...(data.openingHours || {}),
       });
+
+      if (data.plans && data.plans.length > 0) {
+      const formattedPlans = data.plans.map((plan: any) => ({
+        id: plan.id,
+        planName: plan.planName,
+        price: Number(plan.price),
+        minPrice: Number(plan.minPrice),
+        description: plan.description,
+        isMonthlyPlan: plan.isMonthlyPlan,
+        isDailyPlan: plan.isDailyPlan,
+        variationIds: plan.Variation?.map((v: any) => v.id) || [],
+        // 🔥 ADD THIS
+          images: plan.images?.map((img: any) => ({
+            id: img.id,
+            url: img.url,
+          })) || [],
+        }));
+      setPlans(formattedPlans);
+      setOriginalPlans(formattedPlans);
+    }
+
       // 🔥 Fetch existing images
         // 🔥 Fetch existing images (CORRECT VERSION)
       if (data.images && data.images.length > 0) {
-          setExistingImages(
-            data.images.map((img: any) => ({
-              id: img.id,
-              url: img.url,
-            }))
-          );
-        }
 
+      const cover = data.images.find((img: any) => img.isCover);
+      const gallery = data.images.filter((img: any) => !img.isCover);
+
+      if (cover) {
+        setExistingCover({
+          id: cover.id,
+          url: cover.url,
+        });
+      }
+
+      setExistingImages(
+        gallery.map((img: any) => ({
+          id: img.id,
+          url: img.url,
+        }))
+      );
+    }
 
     } catch (error) {
       console.error("Failed to load mess", error);
@@ -173,6 +289,11 @@ const removeImage = (index: number) => {
   setImages((prev) => prev.filter((_, i) => i !== index));
 };
 
+
+
+
+
+
   /* ---------------- HANDLERS ---------------- */
 
   const handleChange = (e: any) => {
@@ -183,6 +304,22 @@ const removeImage = (index: number) => {
       [name]: type === "checkbox" ? checked : value,
     }));
   };
+
+  //plans portions
+
+  /* 🔥 ADD HERE */
+const isPlanChanged = (plan: EditPlan, original: EditPlan) => {
+  return (
+    plan.planName !== original.planName ||
+    plan.price !== original.price ||
+    plan.minPrice !== original.minPrice ||
+    plan.description !== original.description ||
+    plan.isMonthlyPlan !== original.isMonthlyPlan ||
+    plan.isDailyPlan !== original.isDailyPlan ||
+    JSON.stringify([...plan.variationIds].sort()) !==
+      JSON.stringify([...original.variationIds].sort())
+  );
+};
 
   const handleUpdate = async () => {
   try {
@@ -210,7 +347,7 @@ const removeImage = (index: number) => {
       features: [],
     };
 
-    // ✅ 1️⃣ Delete removed images FIRST
+    // 1️⃣ Delete removed images
     if (deletedImageIds.length > 0) {
       await Promise.all(
         deletedImageIds.map((imageId) =>
@@ -219,14 +356,41 @@ const removeImage = (index: number) => {
       );
     }
 
-    // ✅ 2️⃣ Upload new images SECOND
+    // 2️⃣ Upload new gallery images
     if (images.length > 0) {
-      console.log("Images being uploaded:", images);
       await updateMessImages(id, images);
     }
 
-    // ✅ 3️⃣ Update mess details LAST
+    // 3️⃣ Upload cover image (🔥 THIS WAS MISSING PROPER POSITION)
+    if (coverImage) {
+      console.log("Uploading new cover image...", id, coverImage);
+      await updateMessCoverImage(id, coverImage);
+    }
+
+    // 4️⃣ Update mess details LAST
     await updateMess(id, payload);
+    // 5️⃣ Update each plan
+    // 5️⃣ Update only edited plans
+    for (let i = 0; i < plans.length; i++) {
+      const current = plans[i];
+      const original = originalPlans[i];
+
+      if (!original) continue;
+
+      if (isPlanChanged(current, original)) {
+        await updatePlan(current.id, {
+          planName: current.planName,
+          price: current.price,
+          minPrice: current.minPrice,
+          description: current.description,
+          variationIds: current.variationIds,
+          isMonthlyPlan: current.isMonthlyPlan,
+          isDailyPlan: current.isDailyPlan,
+        });
+      }
+    }
+
+
 
     showToast("Mess updated successfully", "success");
     navigate("/messes");
@@ -270,6 +434,8 @@ useEffect(() => {
 
   fetchDistricts();
 }, []);
+ 
+
 
   if (loading) return <div style={{ padding: 20 }}>Loading...</div>;
 
@@ -506,6 +672,61 @@ useEffect(() => {
                 )}
               </div>
             </div>
+            {/* COVER IMAGE */}
+{/* COVER IMAGE */}
+<div className={styles.card}>
+  <h3>Cover Image</h3>
+
+  <div className={styles.previewGrid}>
+
+    {/* Existing Cover */}
+    {existingCover && !coverPreview && (
+      <div className={styles.previewItem}>
+        <img
+          src={existingCover.url}
+          alt="cover"
+          className={styles.previewImage}
+        />
+      </div>
+    )}
+
+    {/* New Cover Preview */}
+    {coverPreview && (
+      <div className={styles.previewItem}>
+        <img
+          src={coverPreview}
+          alt="new cover"
+          className={styles.previewImage}
+        />
+        <button
+          type="button"
+          className={styles.removeBtn}
+          onClick={() => {
+            URL.revokeObjectURL(coverPreview);
+            setCoverImage(null);
+            setCoverPreview(null);
+          }}
+        >
+          ×
+        </button>
+      </div>
+    )}
+
+  </div>
+
+  <input
+    type="file"
+    accept="image/png, image/jpeg"
+    onChange={(e) => {
+      if (!e.target.files?.[0]) return;
+
+      const file = e.target.files[0];
+      setCoverImage(file);
+      setCoverPreview(URL.createObjectURL(file));
+    }}
+  />
+</div>
+
             {/* IMAGES */}
             <div className={styles.card}>
               <h3>Images</h3>
@@ -580,6 +801,144 @@ useEffect(() => {
                 ))}
               </div>
             </div>
+
+          {/* PLANS SECTION */}
+{plans.length > 0 && (
+  <div className={styles.card}>
+    <h3>Plans</h3>
+
+    {plans.map((plan, index) => (
+      <div key={plan.id} style={{ marginBottom: 30 }}>
+
+        <div className={styles.grid}>
+          <div>
+            <label>Plan Name</label>
+            <input
+              value={plan.planName}
+              onChange={(e) =>
+                handlePlanChange(index, "planName", e.target.value)
+              }
+            />
+          </div>
+
+          <div>
+            <label>Price</label>
+            <input
+              type="number"
+              value={plan.price}
+              onChange={(e) =>
+                handlePlanChange(index, "price", Number(e.target.value))
+              }
+            />
+          </div>
+
+          <div>
+            <label>Min Price</label>
+            <input
+              type="number"
+              value={plan.minPrice}
+              onChange={(e) =>
+                handlePlanChange(index, "minPrice", Number(e.target.value))
+              }
+            />
+          </div>
+        </div>
+
+        <div style={{ marginTop: 15 }}>
+          <label>Description</label>
+          <textarea
+            value={plan.description}
+            onChange={(e) =>
+              handlePlanChange(index, "description", e.target.value)
+            }
+          />
+        </div>
+
+        <div style={{ marginTop: 15, display: "flex", gap: 20 }}>
+          <label>
+            <input
+              type="checkbox"
+              checked={plan.isMonthlyPlan}
+              onChange={(e) =>
+                handlePlanChange(index, "isMonthlyPlan", e.target.checked)
+              }
+            />
+            Monthly Plan
+          </label>
+
+          <label>
+            <input
+              type="checkbox"
+              checked={plan.isDailyPlan}
+              onChange={(e) =>
+                handlePlanChange(index, "isDailyPlan", e.target.checked)
+              }
+            />
+            Daily Plan
+          </label>
+        </div>
+        
+        {/* 🔥 MOVE VARIATION HERE */}
+        <div className={styles.variationSection}>
+          <label className={styles.variationTitle}>
+            Variations
+          </label>
+
+          <div className={styles.variationGrid}>
+            {variationList
+              .filter((v) => v.isActive)
+              .map((variation) => (
+                <label
+                  key={variation.id}
+                  className={`${styles.variationItem} ${
+                    plan.variationIds?.includes(variation.id)
+                      ? styles.variationSelected
+                      : ""
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={plan.variationIds?.includes(
+                      variation.id
+                    )}
+                    onChange={() =>
+                      handlePlanVariationChange(
+                        index,
+                        variation.id
+                      )
+                    }
+                  />
+                  {variation.title}
+                </label>
+              ))}
+          </div>
+        </div>
+        {/* PLAN IMAGES */}
+        {plan.images && plan.images.length > 0 && (
+          <div className={styles.planImageSection}>
+            <div className={styles.planImageTitle}>
+              Plan Images
+            </div>
+
+            <div className={styles.planPreviewGrid}>
+              {plan.images.map((img) => (
+                <div key={img.id} className={styles.planPreviewItem}>
+                  <img
+                    src={img.url}
+                    alt="plan"
+                    className={styles.planPreviewImage}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    ))}
+  </div>
+)}
+
+
       {/* ACTIONS */}
         <div className={styles.actions}>
           <button

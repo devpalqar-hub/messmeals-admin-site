@@ -16,10 +16,32 @@
   gap: 12px;
 }
 
-.actions {
-  display: flex;
-  gap: 10px;
+/* Base Status Style */
+.status {
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 999px;
+  margin-left: 12px;
+  display: inline-flex;
+  align-items: center;
+  transition: 0.3s ease;
 }
+
+/* Active Modifier */
+.status.active {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+/* Inactive Modifier */
+.status.inactive {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
 
 .edit {
   border: 1px solid #e5e7eb;
@@ -54,36 +76,128 @@
   padding: 16px;
   border-radius: 12px;
 }
-
 .row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 24px;
+  margin-top: 24px;
 }
 
+/* CARD */
 .card {
-  background: white;
-  padding: 16px;
-  border-radius: 12px;
-}
-.card h3 {
-  margin-bottom: 12px;
+  background: linear-gradient(145deg, #ffffff, #f9fafb);
+  padding: 24px;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+  transition: 0.25s ease;
 }
 
+.card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+}
+
+/* CARD TITLE */
+.card h3 {
+  margin-bottom: 20px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.3px;
+}
+
+/* INFO ROW */
 .infoRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 15px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f1f5f9;
 }
 
+.infoRow:last-child {
+  border-bottom: none;
+}
+
+/* LEFT SIDE (ICON + LABEL) */
 .infoRow h5 {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   font-weight: 600;
-  font-size: 16px;
+  font-size: 14px;
+  color: #475569;
+}
+
+/* ICON STYLE */
+.infoRow h5 svg {
+  background: #ecfdf5;
+  color: #16a34a;
+  padding: 6px;
+  border-radius: 8px;
+  font-size: 28px;
+}
+
+/* VALUE */
+.infoRow p {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+}
+
+/* DESCRIPTION TEXT */
+.card p {
+  font-size: 14px;
+  line-height: 1.7;
   color: #374151;
+}
+
+
+/* Opening Hours Rows */
+.card p {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 14px;
+  color: #475569;
+}
+
+.card p:last-child {
+  border-bottom: none;
+}
+
+/* Day name */
+.card p strong {
+  text-transform: capitalize;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+/* Time badge */
+.card p span,
+.card p:not(:has(strong)) {
+  font-weight: 500;
+}
+
+/* If closed – make subtle red */
+.card p:has(strong) {
+  gap: 12px;
+}
+
+.card p strong + text {
+  font-weight: 500;
+}
+
+/* Better looking time */
+.card p {
+  gap: 12px;
+}
+
+.card p::after {
+  content: "";
 }
 
 .table {
@@ -95,6 +209,28 @@
   padding: 12px;
   border-bottom: 1px solid #e5e7eb;
   text-align: left;
+}
+.active {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 999px;
+  background: #ecfdf5;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+.inactive {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 999px;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
 }
 
 .image {
@@ -116,17 +252,340 @@
 }
 
 .list {
-  margin-top: 12px;
-  padding-left: 16px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .list li {
-  margin-bottom: 8px;
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: 0.2s ease;
+}
+
+.list li:hover {
+  background: #f1f5f9;
+  transform: translateY(-2px);
+}
+.list li strong {
+  font-weight: 600;
+  color: #374151;
+}
+
+.list li div {
+  font-size: 14px;
+  color: #475569;
+}
+
+
+.empty {
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #64748b;
+  text-align: center;
+  border: 1px dashed #cbd5e1;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.iconBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  transition: 0.2s ease;
+}
+
+.iconBtn:hover {
+  background-color: #f2f2f2;
+}
+
+.deleteBtn:hover {
+  background-color: #ffe5e5;
+  color: #d11a2a;
+}
+/* Overlay */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+}
+
+/* Modal box */
+.modal {
+  background: #ffffff;
+  width: 420px;
+  max-width: 90%;
+  padding: 28px;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+/* Heading */
+.modal h3 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+/* Labels */
+.modal label {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  display: block;
+}
+
+/* Inputs */
+.modal input,
+.modal select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #dcdcdc;
+  font-size: 14px;
+  transition: 0.2s ease;
+}
+
+.modal input:focus,
+.modal select:focus {
+  border-color: #1b4332;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(27, 67, 50, 0.15);
+}
+
+/* Button section */
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+/* Save button */
+.modalActions button:first-child {
+  background: #1b4332;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.modalActions button:first-child:hover {
+  background: #1b4332;
+}
+
+/* Cancel button */
+.modalActions button:last-child {
+  background: #f3f3f3;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.modalActions button:last-child:hover {
+  background: #e4e4e4;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.daysContainer {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.dayBtn {
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  background: white;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.dayBtn:hover {
+  border-color: #1b4332;
+}
+
+.selectedDay {
+  background: #1b4332;
+  color: white;
+  border-color: #1b4332;
+}
+/* 🔥 PLAN SECTION */
+.planGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.planCard {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 18px;
+  transition: all 0.2s ease;
+}
+
+.planCard:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  transform: translateY(-2px);
+}
+
+/* Header */
+.planHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.planHeader h4 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.priceBox {
+  background: #ecfdf5;
+  color: #059669;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 20px;
   font-size: 14px;
 }
 
-.empty {
-  margin-top: 12px;
+/* Min price */
+.minPrice {
+  font-size: 13px;
   color: #6b7280;
+  margin-top: 4px;
+}
+
+/* Description */
+.planDescription {
   font-size: 14px;
+  margin-top: 10px;
+  color: #374151;
+}
+
+/* Tags */
+.planTags {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.tagGreen {
+  background: #dcfce7;
+  color: #166534;
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.tagBlue {
+  background: #dbeafe;
+  color: #1e3a8a;
+  padding: 4px 10px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Variation chips */
+.variationChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.chip {
+  background: #f3f4f6;
+  padding: 5px 10px;
+  border-radius: 14px;
+  font-size: 12px;
+  color: #374151;
+}
+
+/* Plan images */
+.planImageGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.planImage {
+  width: 100%;
+  height: 70px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+.planHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.deletePlanBtn {
+  background: #fee2e2;
+  border: none;
+  color: #dc2626;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.deletePlanBtn:hover {
+  background: #dc2626;
+  color: white;
 }

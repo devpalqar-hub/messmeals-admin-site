@@ -61,3 +61,49 @@ export const createMess = async (data: any) => {
 });
 
 };
+export const uploadCoverImage = async (
+  messId: string,
+  file: File
+) => {
+   console.log("Uploading cover for:", messId);
+ 
+  const formData = new FormData();
+  formData.append("file", file);
+
+ return api.post(
+  `/mess/${messId}/cover/image`,
+  formData,
+  {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  }
+);
+}
+// 🔥 CREATE PLAN API
+export const createPlan = async (data: any) => {
+  const formData = new FormData();
+
+  Object.entries(data).forEach(([key, value]) => {
+    if (key !== "planImages" && key !== "variationIds") {
+      formData.append(key, String(value));
+    }
+  });
+
+  // 🔥 variationIds as JSON string like your screenshot
+  formData.append("variationIds", JSON.stringify(data.variationIds));
+
+  if (data.planImages && data.planImages.length > 0) {
+  data.planImages.forEach((file: File) => {
+    formData.append("planImages", file);
+  });
+}
+
+
+
+  return api.post("/plans", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+};
