@@ -2,10 +2,13 @@ import styles from "./AddMess.module.css";
 import { LuArrowLeft, LuPlus } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { createMess } from "../../api/addMess.api";
+import { createMess,uploadCoverImage } from "../../api/addMess.api";
 import {  useEffect } from "react";
 import api from "../../api/axios"; 
 import { useToast } from "../../components/ui/Toast/ToastContainer";
+import { createPlan } from "../../api/addMess.api";
+
+
 
 export default function AddMess() {
   const navigate = useNavigate();
@@ -85,6 +88,46 @@ const [openingHours, setOpeningHours] = useState<
   name: string;
 }
 
+
+// 🔥 PLAN STATE
+const [planForm, setPlanForm] = useState({
+  planName: "",
+  price: "",
+  minPrice: "",
+  description: "",
+  isMonthlyPlan: true,
+  isDailyPlan: false,
+});
+
+const [variationList, setVariationList] = useState<any[]>([]);
+const [selectedVariations, setSelectedVariations] = useState<string[]>([]);
+const [planImages, setPlanImages] = useState<File[]>([]);
+const [planPreviews, setPlanPreviews] = useState<string[]>([]);
+
+
+
+useEffect(() => {
+  const fetchVariations = async () => {
+    try {
+      const res = await api.get("/variation/");
+      setVariationList(res.data); // 🔥 your API returns array directly
+    } catch (error) {
+      console.error("Failed to fetch variations", error);
+    }
+  };
+
+  fetchVariations();
+}, []);
+
+
+const handleVariationChange = (id: string) => {
+  setSelectedVariations((prev) =>
+    prev.includes(id)
+      ? prev.filter((item) => item !== id)
+      : [...prev, id]
+  );
+};
+
 const [districts, setDistricts] = useState<District[]>([]);
 const [loadingDistricts, setLoadingDistricts] = useState(false);
   useEffect(() => {
@@ -111,6 +154,8 @@ const [loadingDistricts, setLoadingDistricts] = useState(false);
    useEffect(() => {
   console.log("DISTRICTS STATE:", districts);
 }, [districts]);
+const [coverImage, setCoverImage] = useState<File | null>(null);
+const [coverPreview, setCoverPreview] = useState<string | null>(null);
 
 
 
@@ -134,38 +179,61 @@ const [loadingDistricts, setLoadingDistricts] = useState(false);
 
    
   const handleSubmit = async () => {
-     console.log("FILES STATE:", files);
-    try {
-      setLoading(true);
-       console.log(createMess)
-      await createMess({
-        ...form,
-        openingHours,
-        messAdminIds,
-        foodTypes,
-        tags,
-        files,
-      });
-    showToast("Mess created successfully ", "success");
+  try {
+    setLoading(true);
 
-        navigate("/messes");
-        } catch (error: any) {
+    // 1️⃣ Create mess
+    const res = await createMess({
+      ...form,
+      openingHours,
+      messAdminIds,
+      foodTypes,
+      tags,
+      files,
+    });
+
+    // 2️⃣ Get mess ID from response
+    const messId = res.data?.data?.id;
+
+    // 3️⃣ Upload cover image if selected
+    if (coverImage && messId) {
+        console.log("Cover image exists?", coverImage);
+
+      await uploadCoverImage(messId, coverImage);
+    }
+        // 4️⃣ Create Plan
+    if (messId) {
+    await createPlan({
+        ...planForm,
+        messId,
+        variationIds: selectedVariations,
+        planImages: planImages,
+        });
+    }
+
+
+    showToast("Mess created successfully", "success");
+    navigate("/messes");
+
+  } catch (error: any) {
     console.error("Create mess failed", error);
 
     let errorMessage = "Something went wrong";
 
     if (error.response?.data?.message) {
-        if (Array.isArray(error.response.data.message)) {
+      if (Array.isArray(error.response.data.message)) {
         errorMessage = error.response.data.message.join(", ");
-        } else {
+      } else {
         errorMessage = error.response.data.message;
-        }
+      }
     }
 
     showToast(errorMessage, "error");
-    }
+  } finally {
+    setLoading(false);
+  }
+};
 
-  };
 
   /* ---------------- UI ---------------- */
 
@@ -424,6 +492,51 @@ const [loadingDistricts, setLoadingDistricts] = useState(false);
                 ))}
                 </div>
             </div>
+             {/* COVER IMAGE */}
+                <div className={styles.card}>
+                <h3>Cover Image</h3>
+
+                <label className={styles.uploadBox}>
+                    <p>Click to upload cover image</p>
+                    <span>PNG, JPG up to 5MB</span>
+
+                    <input
+                    type="file"
+                    accept="image/png, image/jpeg"
+                    hidden
+                    onChange={(e) => {
+                        if (!e.target.files?.[0]) return;
+
+                        const file = e.target.files[0];
+
+                        setCoverImage(file);
+                        setCoverPreview(URL.createObjectURL(file));
+                    }}
+                    />
+                </label>
+
+                {coverPreview && (
+                    <div className={styles.previewItem}>
+                    <img
+                        src={coverPreview}
+                        alt="cover"
+                        className={styles.previewImage}
+                    />
+
+                    <button
+                        type="button"
+                        className={styles.removeBtn}
+                        onClick={() => {
+                        URL.revokeObjectURL(coverPreview);
+                        setCoverImage(null);
+                        setCoverPreview(null);
+                        }}
+                    >
+                        ×
+                    </button>
+                    </div>
+                )}
+                </div>
 
             {/* IMAGES */}
             <div className={styles.card}>
@@ -488,6 +601,141 @@ const [loadingDistricts, setLoadingDistricts] = useState(false);
                 </div>
             )}
             </div>
+          {/* PLAN SECTION */}
+<div className={`${styles.card} ${styles.planSection}`}>
+  <h3 className={styles.planTitle}>Create Plan</h3>
+
+  <div className={styles.planGrid}>
+    <div className={styles.planField}>
+      <label className={styles.planLabel}>Plan Name *</label>
+      <input
+        className={styles.planInput}
+        value={planForm.planName}
+        onChange={(e) =>
+          setPlanForm({ ...planForm, planName: e.target.value })
+        }
+      />
+    </div>
+
+    <div className={styles.planField}>
+      <label className={styles.planLabel}>Price *</label>
+      <input
+        type="number"
+        className={styles.planInput}
+        value={planForm.price}
+        onChange={(e) =>
+          setPlanForm({ ...planForm, price: e.target.value })
+        }
+      />
+    </div>
+
+    <div className={styles.planField}>
+      <label className={styles.planLabel}>Min Price *</label>
+      <input
+        type="number"
+        className={styles.planInput}
+        value={planForm.minPrice}
+        onChange={(e) =>
+          setPlanForm({ ...planForm, minPrice: e.target.value })
+        }
+      />
+    </div>
+  </div>
+
+  <div className={styles.planFullWidth}>
+    <label className={styles.planLabel}>Description</label>
+    <textarea
+      className={styles.planTextarea}
+      value={planForm.description}
+      onChange={(e) =>
+        setPlanForm({ ...planForm, description: e.target.value })
+      }
+    />
+  </div>
+
+  {/* Variations */}
+  <div className={styles.planVariationSection}>
+    <label className={styles.planLabel}>Variations</label>
+
+    <div className={styles.variationList}>
+      {variationList
+        .filter((v) => v.isActive)
+        .map((variation) => (
+          <label key={variation.id} className={styles.variationItem}>
+            <input
+              type="checkbox"
+              className={styles.variationCheckbox}
+              checked={selectedVariations.includes(variation.id)}
+              onChange={() => handleVariationChange(variation.id)}
+            />
+            <span className={styles.variationText}>
+              {variation.title}
+            </span>
+          </label>
+        ))}
+    </div>
+  </div>
+
+  {/* Plan Image */}
+  <div className={styles.planImageSection}>
+    <label className={styles.planLabel}>Plan Image</label>
+
+    <div className={styles.planUploadBox}>
+      <input
+            type="file"
+            multiple
+            className={styles.planFileInput}
+            accept="image/png, image/jpeg"
+            onChange={(e) => {
+                if (!e.target.files) return;
+
+                const selectedFiles = Array.from(e.target.files);
+                const newPreviews = selectedFiles.map((file) =>
+                URL.createObjectURL(file)
+                );
+
+                setPlanImages((prev) => [...prev, ...selectedFiles]);
+                setPlanPreviews((prev) => [...prev, ...newPreviews]);
+            }}
+            />
+    </div>
+    {planPreviews.length > 0 && (
+  <div className={styles.fileList}>
+    {planPreviews.map((src, i) => (
+      <div key={i} className={styles.previewItem}>
+        <img
+          src={src}
+          alt="plan-preview"
+          className={styles.previewImage}
+        />
+
+        <button
+          type="button"
+          className={styles.removeBtn}
+          onClick={() => {
+            const updatedFiles = [...planImages];
+            const updatedPreviews = [...planPreviews];
+
+            URL.revokeObjectURL(updatedPreviews[i]);
+
+            updatedFiles.splice(i, 1);
+            updatedPreviews.splice(i, 1);
+
+            setPlanImages(updatedFiles);
+            setPlanPreviews(updatedPreviews);
+          }}
+        >
+          ×
+        </button>
+      </div>
+    ))}
+  </div>
+)}
+
+  </div>
+</div>
+
+
       {/* ACTIONS */}
         <div className={styles.actions}>
             <button

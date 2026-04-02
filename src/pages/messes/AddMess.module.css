@@ -329,3 +329,125 @@
   border-radius: 8px;
   border: none;
 }
+.planSection {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.planTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.planGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.planField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.planLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: #344054;
+}
+.planInput {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #e4e7ec;
+  font-size: 14px;
+  transition: 0.2s ease;
+}
+
+.planInput:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+.planFullWidth {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.planTextarea {
+  min-height: 90px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #e4e7ec;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.planTextarea:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+.planVariationSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.variationList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.variationItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #e4e7ec;
+  border-radius: 8px;
+  background: #fafafa;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.variationItem:hover {
+  border-color: #6366f1;
+  background: #f4f5ff;
+}
+
+.variationCheckbox {
+  accent-color: #6366f1;
+  cursor: pointer;
+}
+
+.variationText {
+  font-size: 14px;
+}
+.planImageSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.planUploadBox {
+  border: 2px dashed #e4e7ec;
+  border-radius: 12px;
+  padding: 18px;
+  text-align: center;
+  transition: 0.2s ease;
+  cursor: pointer;
+}
+
+.planUploadBox:hover {
+  border-color: #6366f1;
+  background: #f9f9ff;
+}
+
+.planFileInput {
+  border: none;
+  padding: 0;
+  font-size: 14px;
+}
