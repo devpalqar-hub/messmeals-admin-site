@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import styles from "./MessEnquiries.module.css";
 import { LuMail } from "react-icons/lu";
-import { getEnquiries, type Enquiry } from "../../../api/enquiry.api";
+import { getEnquiries, type Enquiry } from "../../../services/enquiry.api";
 
 
 export default function MessEnquiries() {

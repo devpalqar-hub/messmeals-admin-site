@@ -1,22 +1,25 @@
 import styles from "./MessDetails.module.css";
-import { LuArrowLeft, LuCalendar, LuIndianRupee, LuMail, LuMapPin, LuPackage, LuPackageCheck, LuPencil, LuPhone, LuTruck } from "react-icons/lu";
+import { LuArrowLeft, LuCalendar, LuIndianRupee, LuMail, LuMapPin, LuPackage, LuPackageCheck, LuPencil, LuPhone, LuTruck, LuPlus } from "react-icons/lu";
 import { useNavigate, useParams } from "react-router-dom";
 import StatCard from "../../components/ui/StatCard/StatCard";
 import { useEffect, useState } from "react";
-import { getMessById, getMessStats, type MessDetailsResponse, type MessStats } from "../../api/mess.api";
+import { getMessById, getMessStats, type MessDetailsResponse, type MessStats } from "../../services/mess.api";
+import CreatePlanModal from "../../components/ui/CreatePlanModal/CreatePlanModal";
 
-import { deleteUserSubscription } from "../../api/mess.api";
+import { deleteUserSubscription } from "../../services/mess.api";
 import { LuTrash2} from "react-icons/lu";
-import { updateUserSubscription } from "../../api/mess.api";
+import { updateUserSubscription } from "../../services/mess.api";
 import ConfirmModal from "../../components/ui/ConfirmModal/ConfirmModal";
-import { deletePlan } from "../../api/mess.api";
-
+import { deletePlan } from "../../services/mess.api";
+import { useToast } from "../../components/ui/Toast/ToastContainer";
+import type { Plan } from "../../types/plan.types";
 
 
 
 const MessDetails = () => {
 const navigate = useNavigate();
 const { id } = useParams();
+const { showToast } = useToast();
 const [mess, setMess] = useState<MessDetailsResponse | null>(null);
 
 const [stats, setStats] = useState<MessStats | null>(null);
@@ -29,7 +32,9 @@ const [editForm, setEditForm] = useState<any>({
   selectedDays: [],
   start_date: "",
 });
-
+const [showPlanModal, setShowPlanModal] = useState(false);
+const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
+const [showEditPlanModal, setShowEditPlanModal] = useState(false);
 const DAYS = [
   "SUNDAY",
   "MONDAY",
@@ -82,6 +87,18 @@ useEffect(() => {
 
   fetchAll();
 }, [id]);
+
+const handlePlanCreated = async () => {
+  // Refetch mess details to get the new plan
+  if (!id) return;
+  try {
+    const messRes = await getMessById(id);
+    setMess(messRes.data);
+    showToast("Plan added successfully", "success");
+  } catch (error) {
+    console.error("Failed to refetch mess details", error);
+  }
+};
 
 
 if (loading) return <p>Loading mess details...</p>;
@@ -194,7 +211,16 @@ if (!mess) return <p>Mess not found</p>;
 
         </div>
         <div className={styles.card}>
-  <h3>Meal Plans ({mess.plans?.length || 0})</h3>
+  <div className={styles.cardHeader}>
+    <h3>Meal Plans ({mess.plans?.length || 0})</h3>
+    <button
+      type="button"
+      className={styles.addPlanBtn}
+      onClick={() => setShowPlanModal(true)}
+    >
+      <LuPlus size={18} /> Add Plan
+    </button>
+  </div>
 
   {mess.plans && mess.plans.length > 0 ? (
     <div className={styles.planGrid}>
@@ -206,17 +232,27 @@ if (!mess) return <p>Mess not found</p>;
             <h4>{plan.planName}</h4>
 
             <div className={styles.planHeaderRight}>
-              <div className={styles.priceBox}>
-                ₹{Number(plan.price).toLocaleString("en-IN")}
-              </div>
-
-              <button
-                className={styles.deletePlanBtn}
-                onClick={() => setDeletePlanId(plan.id)}
-              >
-                <LuTrash2 size={16} />
-              </button>
+            <div className={styles.priceBox}>
+              ₹{Number(plan.price).toLocaleString("en-IN")}
             </div>
+
+            <button
+              className={styles.editPlanBtn}
+              onClick={() => {
+                setEditingPlan(plan);
+                setShowEditPlanModal(true);
+              }}
+            >
+              <LuPencil size={16} />
+            </button>
+
+            <button
+              className={styles.deletePlanBtn}
+              onClick={() => setDeletePlanId(plan.id)}
+            >
+              <LuTrash2 size={16} />
+            </button>
+          </div>
           </div>
 
           {/* Min price */}
@@ -591,6 +627,25 @@ if (!mess) return <p>Mess not found</p>;
             }
           }}
         />
+
+      {/* CREATE PLAN MODAL */}
+      <CreatePlanModal
+        messId={id!}
+        isOpen={showPlanModal}
+        onClose={() => setShowPlanModal(false)}
+        onSuccess={handlePlanCreated}
+      />
+      <CreatePlanModal
+        messId={id!}
+        isOpen={showEditPlanModal}
+        onClose={() => {
+          setShowEditPlanModal(false);
+          setEditingPlan(null);
+        }}
+        onSuccess={handlePlanCreated}
+        isEdit
+        plan={editingPlan}
+      />
 
     </div>
     

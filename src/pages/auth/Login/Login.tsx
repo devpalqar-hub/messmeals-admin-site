@@ -2,7 +2,7 @@ import { FiMail, FiLock, FiEye, FiEyeOff } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import styles from "./Login.module.css";
-import { loginSuperAdmin } from "../../../api/auth.api";
+import { loginSuperAdmin } from "../../../services/auth.api";
 import { useAuth } from "../../../context/AuthContext";
 import { useToast } from "../../../components/ui/Toast/ToastContainer";
 import axios from "axios";

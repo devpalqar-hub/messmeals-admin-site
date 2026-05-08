@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./AddMessOwner.module.css";
-import { sendMessOwnerOtp } from "../../api/messOwners.api";
 import { useToast } from "../../components/ui/Toast/ToastContainer";
-import { verifyMessOwnerOtp } from "../../api/messOwners.api";
+import { sendMessOwnerOtp, verifyMessOwnerOtp } from "../../services/messOwners.api";
 
 
 
@@ -19,7 +18,6 @@ const AddMessOwner = () => {
     name: "",
     email: "",
     phone: "",
-    messId: "",
   });
 
   const [loading, setLoading] = useState(false);

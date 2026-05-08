@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import styles from "./MessOwners.module.css";
-import { getMessOwners } from "../../api/messOwners.api";
 import { useNavigate } from "react-router-dom";
 import { FiPlus } from "react-icons/fi";
+import { LuSearch } from "react-icons/lu";
+import { getMessOwners } from "../../services/messOwners.api";
 
 interface Mess {
   id: string;
@@ -30,48 +31,63 @@ const MessOwners = () => {
   const [loading, setLoading] = useState(true);
 
   const [page, setPage] = useState(1);
-  const [limit] = useState(5);
+  const [limit] = useState(7);
+  const [search, setSearch] = useState("");
   const [totalPages, setTotalPages] = useState(1);
   const navigate = useNavigate();
   
-  useEffect(() => {
-    const fetchOwners = async () => {
-      try {
-        setLoading(true);
-        const res = await getMessOwners(page, limit);
-
-        setOwners(res.data.data);
-        setTotalPages(res.data.meta.totalPages);
-      } catch (error) {
-        console.error("Failed to fetch mess owners", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
+useEffect(() => {
+  const delayDebounce = setTimeout(() => {
     fetchOwners();
-  }, [page]);
+  }, 400);
 
-  if (loading) return <div>Loading...</div>;
+  return () => clearTimeout(delayDebounce);
+}, [page, search]);
+
+const fetchOwners = async () => {
+  try {
+    setLoading(true);
+
+    const res = await getMessOwners(
+      page,
+      limit,
+      search
+    );
+
+    setOwners(res.data.data);
+    setTotalPages(res.data.meta.totalPages);
+  } catch (error) {
+    console.error("Failed to fetch mess owners", error);
+  } finally {
+    setLoading(false);
+  }
+};
   
 
   return (
     <div className={styles.wrapper}>
      
-        <div className={styles.headerRow}>
-        <h2 className={styles.title}>
-            Mess Owners ({owners.length})
-        </h2>
-
-         <button
-        className={styles.addBtn}
-        onClick={() => navigate("/mess-owners/add")}
-        >
-        <FiPlus className={styles.plusIcon} />
-        Add New Mess Owner
-        </button>
-
+      <div className={styles.topBar}>
+        <div className={styles.searchBox}>
+          <LuSearch />
+          <input
+            placeholder="Search mess owners..."
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+          />
         </div>
+
+        <button
+          className={styles.addButton}
+          onClick={() => navigate("/mess-owners/add")}
+        >
+          <FiPlus />
+          Add New Mess Owner
+        </button>
+      </div>
 
       <div className={styles.tableBox}>
         <table>
@@ -87,66 +103,94 @@ const MessOwners = () => {
             </tr>
           </thead>
           <tbody>
-            {owners.length > 0 ? (
-              owners.map((owner) => (
-                <tr key={owner.id}>
-                  <td>{owner.name}</td>
-                  <td>{owner.email}</td>
-                  <td>{owner.phone}</td>
-                  <td>{owner.is_verified ? "Yes" : "No"}</td>
-                  <td>
-                    <span
-                      className={
-                        owner.is_active
-                          ? styles.active
-                          : styles.inactive
-                      }
-                    >
-                      {owner.is_active ? "Active" : "Inactive"}
+          {loading && (
+            <tr>
+              <td colSpan={7} style={{ textAlign: "center" }}>
+                Loading...
+              </td>
+            </tr>
+          )}
+
+          {!loading && owners.length > 0 ? (
+            owners.map((owner) => (
+              <tr key={owner.id}>
+                <td>{owner.name}</td>
+                <td>{owner.email}</td>
+                <td>{owner.phone}</td>
+
+                <td>
+                  {owner.is_verified ? (
+                    <span className={styles.active}>
+                      Verified
                     </span>
-                  </td>
-                  <td>
-                    {owner.messAdminProfile?.messes?.length
-                      ? owner.messAdminProfile.messes
-                          .map((m) => m.name)
-                          .join(", ")
-                      : "No mess assigned"}
-                  </td>
-                  <td>
-                    {new Date(owner.createdAt).toLocaleDateString("en-IN")}
-                  </td>
-                </tr>
-              ))
-            ) : (
+                  ) : (
+                    <span className={styles.inactive}>
+                      Not Verified
+                    </span>
+                  )}
+                </td>
+
+                <td>
+                  <span
+                    className={
+                      owner.is_active
+                        ? styles.active
+                        : styles.inactive
+                    }
+                  >
+                    {owner.is_active ? "Active" : "Inactive"}
+                  </span>
+                </td>
+
+                <td>
+                  {owner.messAdminProfile?.messes?.length
+                    ? owner.messAdminProfile.messes
+                        .map((m) => m.name)
+                        .join(", ")
+                    : "No mess assigned"}
+                </td>
+
+                <td>
+                  {new Date(owner.createdAt).toLocaleDateString(
+                    "en-IN"
+                  )}
+                </td>
+              </tr>
+            ))
+          ) : (
+            !loading && (
               <tr>
                 <td colSpan={7} style={{ textAlign: "center" }}>
                   No Mess Owners Found
                 </td>
               </tr>
-            )}
-          </tbody>
+            )
+          )}
+        </tbody>
         </table>
       </div>
 
       {/* PAGINATION */}
       <div className={styles.pagination}>
-        <button
-          disabled={page === 1}
-          onClick={() => setPage((p) => p - 1)}
-        >
-          Prev
-        </button>
-
-        <span>
+        <div>
           Page {page} of {totalPages}
-        </span>
+        </div>
 
-        <button
-          disabled={page === totalPages}
-          onClick={() => setPage((p) => p + 1)}
-        >
-          Next
-        </button>
+        <div className={styles.paginationbuttons}>
+          <button
+            disabled={page === 1}
+            onClick={() => setPage((p) => p - 1)}
+          >
+            Prev
+          </button>
+
+          <button
+            disabled={page === totalPages}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Next
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,14 +1,28 @@
 import styles from "./AddMess.module.css";
 import { LuArrowLeft, LuPlus } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { createMess,uploadCoverImage } from "../../api/addMess.api";
-import {  useEffect } from "react";
-import api from "../../api/axios"; 
+import { useState, useEffect } from "react";
+import type { ChangeEvent } from "react";
+import { createMess, uploadCoverImage } from "../../services/addMess.api";
+import { getMessOwners } from "../../services/messOwners.api";
+import api from "../../services/axios";
 import { useToast } from "../../components/ui/Toast/ToastContainer";
-import { createPlan } from "../../api/addMess.api";
 
-
+interface MessOwner {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  is_verified?: boolean;
+  is_active?: boolean;
+  messAdminProfile?: {
+    id: string;
+    messes?: {
+      id: string;
+      name: string;
+    }[];
+  };
+}
 
 export default function AddMess() {
   const navigate = useNavigate();
@@ -33,7 +47,14 @@ export default function AddMess() {
 
   const [foodTypes, setFoodTypes] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
-  const [messAdminIds] = useState<string[]>([]); // later dynamic
+  const [messAdminIds, setMessAdminIds] = useState<string[]>([]);
+  const [selectedAdmins, setSelectedAdmins] = useState<MessOwner[]>([]);
+  const [owners, setOwners] = useState<MessOwner[]>([]);
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [ownerPage, setOwnerPage] = useState(1);
+  const [ownerLimit] = useState(5);
+  const [ownerTotalPages, setOwnerTotalPages] = useState(1);
+  const [ownersLoading, setOwnersLoading] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -89,58 +110,60 @@ const [openingHours, setOpeningHours] = useState<
 }
 
 
-// 🔥 PLAN STATE
-const [planForm, setPlanForm] = useState({
-  planName: "",
-  price: "",
-  minPrice: "",
-  description: "",
-  isMonthlyPlan: true,
-  isDailyPlan: false,
-});
+// 🔥 PLAN STATE - REMOVED
+// const [planForm, setPlanForm] = useState({
+//   planName: "",
+//   price: "",
+//   minPrice: "",
+//   description: "",
+//   isMonthlyPlan: true,
+//   isDailyPlan: false,
+// });
 
-const [variationList, setVariationList] = useState<any[]>([]);
-const [selectedVariations, setSelectedVariations] = useState<string[]>([]);
-const [planImages, setPlanImages] = useState<File[]>([]);
-const [planPreviews, setPlanPreviews] = useState<string[]>([]);
-
-
-
-useEffect(() => {
-  const fetchVariations = async () => {
-    try {
-      const res = await api.get("/variation/");
-      setVariationList(res.data); // 🔥 your API returns array directly
-    } catch (error) {
-      console.error("Failed to fetch variations", error);
-    }
-  };
-
-  fetchVariations();
-}, []);
+// const [variationList, setVariationList] = useState<
+//   Array<{ id: string; title: string; isActive: boolean }>
+// >([]);
+// const [selectedVariations, setSelectedVariations] = useState<string[]>([]);
+// const [planImages, setPlanImages] = useState<File[]>([]);
+// const [planPreviews, setPlanPreviews] = useState<string[]>([]);
 
 
-const handleVariationChange = (id: string) => {
-  setSelectedVariations((prev) =>
-    prev.includes(id)
-      ? prev.filter((item) => item !== id)
-      : [...prev, id]
-  );
-};
+
+// useEffect(() => {
+//   const fetchVariations = async () => {
+//     try {
+//       const res = await api.get("/variation/");
+//       setVariationList(res.data); // 🔥 your API returns array directly
+//     } catch (error) {
+//       console.error("Failed to fetch variations", error);
+//     }
+//   };
+
+//   fetchVariations();
+// }, []);
+
+
+// const handleVariationChange = (id: string) => {
+//   setSelectedVariations((prev) =>
+//     prev.includes(id)
+//       ? prev.filter((item) => item !== id)
+//       : [...prev, id]
+//   );
+// };
 
 const [districts, setDistricts] = useState<District[]>([]);
 const [loadingDistricts, setLoadingDistricts] = useState(false);
-  useEffect(() => {
+
+useEffect(() => {
   const fetchDistricts = async () => {
     try {
       setLoadingDistricts(true);
 
       const res = await api.get("/districts");
-       console.log("DISTRICT RESPONSE:", res.data);
+      console.log("DISTRICT RESPONSE:", res.data);
       if (res.data?.data) {
         setDistricts(res.data.data);
       }
-
     } catch (error) {
       console.error("Failed to fetch districts", error);
     } finally {
@@ -150,6 +173,25 @@ const [loadingDistricts, setLoadingDistricts] = useState(false);
 
   fetchDistricts();
 }, []);
+
+useEffect(() => {
+  if (!showAdminModal) return;
+
+  const fetchOwners = async () => {
+    try {
+      setOwnersLoading(true);
+      const res = await getMessOwners(ownerPage, ownerLimit);
+      setOwners(res.data.data || []);
+      setOwnerTotalPages(res.data.meta?.totalPages ?? 1);
+    } catch (error) {
+      console.error("Failed to fetch mess admins", error);
+    } finally {
+      setOwnersLoading(false);
+    }
+  };
+
+  fetchOwners();
+}, [showAdminModal, ownerPage, ownerLimit]);
 
    useEffect(() => {
   console.log("DISTRICTS STATE:", districts);
@@ -161,78 +203,102 @@ const [coverPreview, setCoverPreview] = useState<string | null>(null);
 
   /* ---------------- HANDLERS ---------------- */
 
-  const handleChange = (e: any) => {
-    const { name, value, type, checked } = e.target;
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const target = e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+    const name = target.name;
+    const value = target.value;
+    const type = target.type;
+    const checked = target instanceof HTMLInputElement ? target.checked : false;
 
     setForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
   };
+
   const handleAddHours = () => {
-
-  setOpeningHours((prev) => ({
-    ...prev,
-    [selectedDay]: `${openTime}-${closeTime}`,
-  }));
-};
-
-   
-  const handleSubmit = async () => {
-  try {
-    setLoading(true);
-
-    // 1️⃣ Create mess
-    const res = await createMess({
-      ...form,
-      openingHours,
-      messAdminIds,
-      foodTypes,
-      tags,
-      files,
-    });
-
-    // 2️⃣ Get mess ID from response
-    const messId = res.data?.data?.id;
-
-    // 3️⃣ Upload cover image if selected
-    if (coverImage && messId) {
-        console.log("Cover image exists?", coverImage);
-
-      await uploadCoverImage(messId, coverImage);
-    }
-        // 4️⃣ Create Plan
-    if (messId) {
-    await createPlan({
-        ...planForm,
-        messId,
-        variationIds: selectedVariations,
-        planImages: planImages,
-        });
+    if (openTime >= closeTime) {
+      showToast("Close time must be later than open time", "error");
+      return;
     }
 
+    setOpeningHours((prev) => ({
+      ...prev,
+      [selectedDay]: `${openTime}-${closeTime}`,
+    }));
+  };
 
-    showToast("Mess created successfully", "success");
-    navigate("/messes");
+  const handleAdminModalClose = () => {
+    setShowAdminModal(false);
+    setOwnerPage(1);
+  };
 
-  } catch (error: any) {
-    console.error("Create mess failed", error);
+  const handleToggleAdmin = (owner: MessOwner) => {
+    const profileId = owner.messAdminProfile?.id;
+    if (!profileId) return;
 
-    let errorMessage = "Something went wrong";
+    const alreadySelected = messAdminIds.includes(profileId);
 
-    if (error.response?.data?.message) {
-      if (Array.isArray(error.response.data.message)) {
-        errorMessage = error.response.data.message.join(", ");
-      } else {
-        errorMessage = error.response.data.message;
+    if (alreadySelected) {
+      setMessAdminIds((prev) => prev.filter((id) => id !== profileId));
+      setSelectedAdmins((prev) => prev.filter((item) => item.id !== owner.id));
+      return;
+    }
+
+    setMessAdminIds((prev) => [...prev, profileId]); // ✅ FIXED
+    setSelectedAdmins((prev) => [...prev, owner]);
+  };
+
+  const getErrorMessage = (error: unknown) => {
+    if (typeof error === "object" && error !== null) {
+      const err = error as {
+        response?: {
+          data?: {
+            message?: string | string[];
+          };
+        };
+      };
+
+      const message = err.response?.data?.message;
+      if (message) {
+        return Array.isArray(message) ? message.join(", ") : message;
       }
     }
 
-    showToast(errorMessage, "error");
-  } finally {
-    setLoading(false);
-  }
-};
+    return "Something went wrong";
+  };
+
+  const handleSubmit = async () => {
+    try {
+      setLoading(true);
+
+      const res = await createMess({
+        ...form,
+        openingHours,
+        messAdminIds,
+        foodTypes,
+        tags,
+        files,
+      });
+
+      const messId = res.data?.data?.id;
+
+      if (coverImage && messId) {
+        console.log("Cover image exists?", coverImage);
+        await uploadCoverImage(messId, coverImage);
+      }
+
+      showToast("Mess created successfully", "success");
+      navigate("/messes");
+    } catch (error: unknown) {
+      console.error("Create mess failed", error);
+      showToast(getErrorMessage(error), "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
 
   /* ---------------- UI ---------------- */
@@ -393,20 +459,146 @@ const [coverPreview, setCoverPreview] = useState<string | null>(null);
                 onChange={(e) => setCloseTime(e.target.value)}
                 />
             </div>
+            <div className={styles.openingHoursList}>
+              {Object.entries(openingHours)
+                .filter(([, value]) => value !== "closed")
+                .map(([day, hours]) => (
+                  <div key={day} className={styles.openingHoursItem}>
+                    <div>
+                      <strong>{day.charAt(0).toUpperCase() + day.slice(1)}</strong>
+                      <span>{hours}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.removeBtnSmall}
+                      onClick={() =>
+                        setOpeningHours((prev) => ({
+                          ...prev,
+                          [day]: "closed",
+                        }))
+                      }
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+            </div>
             </div>
             {/* MESS ADMINS */}
             <div className={styles.card}>
             <div className={styles.cardHeader}>
                 <h3>Mess Admins</h3>
 
-                <button type="button" className={styles.addSmallBtn}>
-                <LuPlus /> Add Hours
+                <button
+                  type="button"
+                  className={styles.addSmallBtn}
+                  onClick={() => setShowAdminModal(true)}
+                >
+                <LuPlus /> Add Admin
                 </button>
             </div>
 
-            <div className={styles.emptyState}>
+            {selectedAdmins.length > 0 ? (
+              <div className={styles.selectedAdminList}>
+                {selectedAdmins.map((admin) => (
+                  <div key={admin.id} className={styles.adminItem}>
+                    <div>
+                      <strong>{admin.name}</strong>
+                      <p>{admin.email}</p>
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.removeBtnSmall}
+                      onClick={() => handleToggleAdmin(admin)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className={styles.emptyState}>
                 No admins added yet. Click "Add Admin" to add one.
-            </div>
+              </div>
+            )}
+
+            {showAdminModal && (
+              <div
+                className={styles.modalOverlay}
+                onClick={handleAdminModalClose}
+              >
+                <div
+                  className={styles.modalContent}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className={styles.modalHeader}>
+                    <h3>Select Mess Admin</h3>
+                    <button
+                      type="button"
+                      className={styles.closeModalBtn}
+                      onClick={handleAdminModalClose}
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  {ownersLoading ? (
+                    <div>Loading admins...</div>
+                  ) : owners.length === 0 ? (
+                    <div>No mess owners found.</div>
+                  ) : (
+                    <div className={styles.adminList}>
+                      {owners.map((owner) => (
+                        <button
+                          key={owner.id}
+                          type="button"
+                          className={`${styles.adminListItem} ${messAdminIds.includes(owner.id) ? styles.selectedAdminRow : ""}`}
+                          onClick={() => handleToggleAdmin(owner)}
+                        >
+                          <div>
+                            <strong>{owner.name}</strong>
+                            <p>{owner.email}</p>
+                          </div>
+                          <span>
+                            {messAdminIds.includes(owner.id) ? "Selected" : "Select"}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className={styles.pagination}>
+                    <button
+                      type="button"
+                      disabled={ownerPage === 1}
+                      onClick={() => setOwnerPage((p) => p - 1)}
+                    >
+                      Prev
+                    </button>
+                    <span>
+                      Page {ownerPage} of {ownerTotalPages}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={ownerPage === ownerTotalPages}
+                      onClick={() => setOwnerPage((p) => p + 1)}
+                    >
+                      Next
+                    </button>
+                  </div>
+
+                  <div className={styles.modalActions}>
+                    <button
+                      type="button"
+                      className={styles.cancel}
+                      onClick={handleAdminModalClose}
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
         </div>
 
       {/* FOOD TYPES */}
@@ -601,140 +793,6 @@ const [coverPreview, setCoverPreview] = useState<string | null>(null);
                 </div>
             )}
             </div>
-          {/* PLAN SECTION */}
-<div className={`${styles.card} ${styles.planSection}`}>
-  <h3 className={styles.planTitle}>Create Plan</h3>
-
-  <div className={styles.planGrid}>
-    <div className={styles.planField}>
-      <label className={styles.planLabel}>Plan Name *</label>
-      <input
-        className={styles.planInput}
-        value={planForm.planName}
-        onChange={(e) =>
-          setPlanForm({ ...planForm, planName: e.target.value })
-        }
-      />
-    </div>
-
-    <div className={styles.planField}>
-      <label className={styles.planLabel}>Price *</label>
-      <input
-        type="number"
-        className={styles.planInput}
-        value={planForm.price}
-        onChange={(e) =>
-          setPlanForm({ ...planForm, price: e.target.value })
-        }
-      />
-    </div>
-
-    <div className={styles.planField}>
-      <label className={styles.planLabel}>Min Price *</label>
-      <input
-        type="number"
-        className={styles.planInput}
-        value={planForm.minPrice}
-        onChange={(e) =>
-          setPlanForm({ ...planForm, minPrice: e.target.value })
-        }
-      />
-    </div>
-  </div>
-
-  <div className={styles.planFullWidth}>
-    <label className={styles.planLabel}>Description</label>
-    <textarea
-      className={styles.planTextarea}
-      value={planForm.description}
-      onChange={(e) =>
-        setPlanForm({ ...planForm, description: e.target.value })
-      }
-    />
-  </div>
-
-  {/* Variations */}
-  <div className={styles.planVariationSection}>
-    <label className={styles.planLabel}>Variations</label>
-
-    <div className={styles.variationList}>
-      {variationList
-        .filter((v) => v.isActive)
-        .map((variation) => (
-          <label key={variation.id} className={styles.variationItem}>
-            <input
-              type="checkbox"
-              className={styles.variationCheckbox}
-              checked={selectedVariations.includes(variation.id)}
-              onChange={() => handleVariationChange(variation.id)}
-            />
-            <span className={styles.variationText}>
-              {variation.title}
-            </span>
-          </label>
-        ))}
-    </div>
-  </div>
-
-  {/* Plan Image */}
-  <div className={styles.planImageSection}>
-    <label className={styles.planLabel}>Plan Image</label>
-
-    <div className={styles.planUploadBox}>
-      <input
-            type="file"
-            multiple
-            className={styles.planFileInput}
-            accept="image/png, image/jpeg"
-            onChange={(e) => {
-                if (!e.target.files) return;
-
-                const selectedFiles = Array.from(e.target.files);
-                const newPreviews = selectedFiles.map((file) =>
-                URL.createObjectURL(file)
-                );
-
-                setPlanImages((prev) => [...prev, ...selectedFiles]);
-                setPlanPreviews((prev) => [...prev, ...newPreviews]);
-            }}
-            />
-    </div>
-    {planPreviews.length > 0 && (
-  <div className={styles.fileList}>
-    {planPreviews.map((src, i) => (
-      <div key={i} className={styles.previewItem}>
-        <img
-          src={src}
-          alt="plan-preview"
-          className={styles.previewImage}
-        />
-
-        <button
-          type="button"
-          className={styles.removeBtn}
-          onClick={() => {
-            const updatedFiles = [...planImages];
-            const updatedPreviews = [...planPreviews];
-
-            URL.revokeObjectURL(updatedPreviews[i]);
-
-            updatedFiles.splice(i, 1);
-            updatedPreviews.splice(i, 1);
-
-            setPlanImages(updatedFiles);
-            setPlanPreviews(updatedPreviews);
-          }}
-        >
-          ×
-        </button>
-      </div>
-    ))}
-  </div>
-)}
-
-  </div>
-</div>
-
 
       {/* ACTIONS */}
         <div className={styles.actions}>

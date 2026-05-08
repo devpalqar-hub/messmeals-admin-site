@@ -6,6 +6,7 @@ import {
   FiLogOut,
   FiMessageSquare,
   FiUsers,
+  FiPackage,
 } from "react-icons/fi";
 import styles from "./Sidebar.module.css";
 import { useNavigate } from "react-router-dom";
@@ -76,6 +77,16 @@ const Sidebar = () => {
             >  
             <FiTruck />
             <span>Delivery Agents</span>
+            </NavLink>
+
+            <NavLink 
+                to="/deliveries" 
+                className={({ isActive }) =>
+                 isActive ? `${styles.link} ${styles.active}` : styles.link
+            }
+            >  
+            <FiPackage />
+            <span>Deliveries</span>
             </NavLink>
 
             <div

@@ -571,6 +571,25 @@
   gap: 10px;
 }
 
+.editPlanBtn {
+  background: #dbeafe;
+  border: none;
+  color: #2563eb;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.editPlanBtn:hover {
+  background: #2563eb;
+  color: white;
+}
+
 .deletePlanBtn {
   background: #fee2e2;
   border: none;
@@ -588,4 +607,40 @@
 .deletePlanBtn:hover {
   background: #dc2626;
   color: white;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.cardHeader h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.addPlanBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.addPlanBtn:hover {
+  background: #15803d;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+  transform: translateY(-1px);
 }

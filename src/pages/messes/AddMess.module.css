@@ -184,6 +184,162 @@
   color: #64748b;
 }
 
+.openingHoursList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.openingHoursItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  max-width: 360px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.openingHoursItem strong {
+  display: block;
+  margin-bottom: 4px;
+  text-transform: capitalize;
+}
+
+.selectedAdminList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.adminItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+}
+
+.adminItem p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #475569;
+}
+
+.removeBtnSmall {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: none;
+  background: #ef4444;
+  color: white;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.removeBtnSmall:hover {
+  opacity: 0.9;
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modalContent {
+  width: min(720px, 100%);
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.18);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.closeModalBtn {
+  border: none;
+  background: transparent;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.adminList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.adminListItem {
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.adminListItem:hover {
+  background: #eef2ff;
+}
+
+.selectedAdminRow {
+  border: 1px solid #2563eb;
+  background: #eff6ff;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.pagination button {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: white;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Inline input (Food/Tags) */
 .inlineInput {
   display: flex;

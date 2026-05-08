@@ -3,6 +3,8 @@ import Login from "./pages/auth/Login/Login";
 import Dashboard from "./pages/dashboard/Dashboard";
 import Messes from "./pages/messes/Messes";
 import DeliveryAgents from "./pages/deliveryAgents/DeliveryAgents";
+import Deliveries from "./pages/deliveries/Deliveries";
+import DeliveryDetails from "./pages/deliveries/DeliveryDetails";
 import MainLayout from "./components/Layout/MainLayout";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AddMess from "./pages/messes/AddMess";
@@ -12,6 +14,8 @@ import CustomerEnquiries from "./pages/enquiries/Customer Enquiries/CustomerEnqu
 import MessDetails from "./pages/mess-details/MessDetails";
 import MessOwners from "./pages/ mess-owners/MessOwners";
 import AddMessOwner from "./pages/ mess-owners/AddMessOwner";
+import AddDeliveryAgent from "./pages/deliveryAgents/AddDeliveryAgent";
+import DeliveryAgentDetails from "./pages/deliveryAgents/DeliveryAgentDetails";
 
 
 
@@ -41,6 +45,10 @@ function App() {
         <Route path="/mess-owners" element={<MessOwners />} />
         <Route path="/mess-owners/add" element={<AddMessOwner />} />
         <Route path="/delivery-agents" element={<DeliveryAgents />} />
+        <Route path="/delivery-agents/add" element={<AddDeliveryAgent />} />
+        <Route path="/delivery-agents/:id" element={<DeliveryAgentDetails />} />
+        <Route path="/deliveries" element={<Deliveries />} />
+        <Route path="/deliveries/:id" element={<DeliveryDetails />} />
         <Route path="/mess-enquiries" element={<MessEnquiries />} />
         <Route path="/customer-enquiries" element={<CustomerEnquiries />} />
       </Route>

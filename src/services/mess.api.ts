@@ -57,9 +57,17 @@ export interface MessAdmin {
 }
 
 
-export const getMesses = (page: number, limit: number) => {
+export const getMesses = (
+  page: number,
+  limit: number,
+  search?: string
+) => {
   return api.get("/mess", {
-    params: { page, limit },
+    params: {
+      page,
+      limit,
+      ...(search && { search }),
+    },
   });
 };
 
