@@ -1,7 +1,6 @@
 import styles from "./MessDetails.module.css";
 import { LuArrowLeft, LuCalendar, LuIndianRupee, LuMail, LuMapPin, LuPackage, LuPackageCheck, LuPencil, LuPhone, LuTruck, LuPlus } from "react-icons/lu";
 import { useNavigate, useParams } from "react-router-dom";
-import StatCard from "../../components/ui/StatCard/StatCard";
 import { useEffect, useState } from "react";
 import { getMessById, getMessStats, type MessDetailsResponse, type MessStats } from "../../services/mess.api";
 import CreatePlanModal from "../../components/ui/CreatePlanModal/CreatePlanModal";
@@ -13,6 +12,50 @@ import ConfirmModal from "../../components/ui/ConfirmModal/ConfirmModal";
 import { deletePlan } from "../../services/mess.api";
 import { useToast } from "../../components/ui/Toast/ToastContainer";
 import type { Plan } from "../../types/plan.types";
+
+interface StatCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  accent?: string;
+  sub?: string;
+}
+
+const StatCard = ({
+  title,
+  value,
+  icon,
+  accent = "#16a34a",
+  sub,
+}: StatCardProps) => (
+  <div className={styles.statCard}>
+    <div
+      className={styles.statIcon}
+      style={{
+        background: `${accent}18`,
+        color: accent,
+      }}
+    >
+      {icon}
+    </div>
+
+    <div className={styles.statContent}>
+      <p className={styles.statTitle}>
+        {title}
+      </p>
+
+      <p className={styles.statValue}>
+        {value}
+      </p>
+
+      {sub && (
+        <p className={styles.statSub}>
+          {sub}
+        </p>
+      )}
+    </div>
+  </div>
+);
 
 
 
@@ -130,52 +173,60 @@ if (!mess) return <p>Mess not found</p>;
       {/* STATS */}
       <div className={styles.statsGrid}>
         <StatCard
-            title="Total Revenue"
-            value={`₹${safeStats.totalRevenue.toLocaleString("en-IN")}`}
-            icon={<LuIndianRupee />}
-            variant="revenue"
-          />
+          title="Total Revenue"
+          value={`₹${safeStats.totalRevenue.toLocaleString("en-IN")}`}
+          icon={<LuIndianRupee size={20} />}
+          accent="#16a34a"
+        />
 
-          <StatCard
-            title="Total Orders"
-            value={safeStats.totalOrders.toString()}
-            icon={<LuPackage />}
-             variant="orders"
-          />
+        <StatCard
+          title="Total Orders"
+          value={safeStats.totalOrders.toLocaleString()}
+          icon={<LuPackage size={20} />}
+          accent="#2563eb"
+        />
 
-          <StatCard
-            title="Completed Orders"
-            value={safeStats.completedOrders.toString()}
-            icon={<LuPackageCheck />}
-            variant="completed"
-          />
+        <StatCard
+          title="Completed Orders"
+          value={safeStats.completedOrders.toLocaleString()}
+          icon={<LuPackageCheck size={20} />}
+          accent="#059669"
+          sub={`${
+            safeStats.totalOrders
+              ? Math.round(
+                  (safeStats.completedOrders /
+                    safeStats.totalOrders) *
+                    100
+                )
+              : 0
+          }% completion`}
+        />
 
-          <StatCard
-            title="Pending Revenue"
-            value={`₹${safeStats.pendingRevenue.toLocaleString("en-IN")}`}
-            icon={<LuIndianRupee />}
-            variant="pending"
-          />
+        <StatCard
+          title="Pending Revenue"
+          value={`₹${safeStats.pendingRevenue.toLocaleString(
+            "en-IN"
+          )}`}
+          icon={<LuIndianRupee size={20} />}
+          accent="#d97706"
+        />
 
-          <StatCard
-            title="Today's Revenue"
-            value={`₹${safeStats.todaysRevenue.toLocaleString("en-IN")}`}
-            icon={<LuIndianRupee />}
-            variant="today"
-          />
-          <StatCard
-            title="Total Partners"
-            value={safeStats.totalPartners.toString()}
-            icon={<LuTruck />}
-            variant="partners"
-          />
-          <StatCard
-            title="Active Partners"
-            value={safeStats.activePartners.toString()}
-            icon={<LuTruck />}
-            variant="active"
-          />
+        <StatCard
+          title="Today's Revenue"
+          value={`₹${safeStats.todaysRevenue.toLocaleString(
+            "en-IN"
+          )}`}
+          icon={<LuIndianRupee size={20} />}
+          accent="#0f766e"
+        />
 
+        <StatCard
+          title="Delivery Partners"
+          value={safeStats.totalPartners.toLocaleString()}
+          icon={<LuTruck size={20} />}
+          accent="#64748b"
+          sub={`${safeStats.activePartners} active`}
+        />
       </div>
 
       {/* INFO GRID */}

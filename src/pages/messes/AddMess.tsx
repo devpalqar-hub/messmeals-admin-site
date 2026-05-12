@@ -40,7 +40,7 @@ export default function AddMess() {
     districtId: "",
     is_active: true,
     is_verified: false,
-    is_premium: false, 
+    isPremium: false,
   });
 
   const { showToast } = useToast();
@@ -406,8 +406,8 @@ const [coverPreview, setCoverPreview] = useState<string | null>(null);
             <label className={styles.switch}>
                 <input
                 type="checkbox"
-                name="is_premium"
-                checked={form.is_premium}
+                name="isPremium"
+                checked={form.isPremium}
                 onChange={handleChange}
                 />
                 <span className={styles.slider}></span>
