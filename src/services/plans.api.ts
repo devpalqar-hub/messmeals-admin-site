@@ -1,6 +1,6 @@
 import api from "./axios";
 import { uploadFile } from "./upload.service";
-import type { CreatePlanPayload, UpdatePlanPayload, Plan, PlanResponse, PlansListResponse } from "../types/plan.types";
+import type { CreatePlanPayload, UpdatePlanPayload, PlanResponse, PlansListResponse } from "../types/plan.types";
 
 /**
  * Create a new plan with JSON body
