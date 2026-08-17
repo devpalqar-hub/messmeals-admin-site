@@ -10,3 +10,14 @@
 .title {
   font-size: 30px;
 }
+
+@media (max-width: 900px) {
+  .header {
+    height: auto;
+    padding: 16px;
+  }
+
+  .title {
+    font-size: 24px;
+  }
+}

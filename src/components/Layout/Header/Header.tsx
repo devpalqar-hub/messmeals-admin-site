@@ -6,16 +6,17 @@ const Header = () => {
 
   // Map routes to titles
   const getTitle = () => {
-    switch (location.pathname) {
-      case "/dashboard":
-        return "Dashboard";
-      case "/messes":
-        return "Messes";
-      case "/delivery-agents":
-        return "Delivery Agents";
-      default:
-        return "Dashboard";
-    }
+    const path = location.pathname;
+
+    if (path.startsWith("/messes")) return "Messes";
+    if (path.startsWith("/mess-owners")) return "Mess Owners";
+    if (path.startsWith("/delivery-agents")) return "Delivery Agents";
+    if (path.startsWith("/deliveries")) return "Deliveries";
+    if (path.startsWith("/mess-enquiries")) return "Mess Enquiries";
+    if (path.startsWith("/customer-enquiries")) return "Customer Enquiries";
+    if (path.startsWith("/settings")) return "Settings";
+
+    return "Dashboard";
   };
 
   return (
