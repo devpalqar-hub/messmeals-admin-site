@@ -7,6 +7,7 @@ import {
   FiMessageSquare,
   FiUsers,
   FiPackage,
+  FiSettings,
 } from "react-icons/fi";
 import styles from "./Sidebar.module.css";
 import { useNavigate } from "react-router-dom";
@@ -121,6 +122,16 @@ const Sidebar = () => {
                   Customer Enquiries
                 </NavLink>
               </div>
+
+            <NavLink
+                to="/settings"
+                className={({ isActive }) =>
+                 isActive ? `${styles.link} ${styles.active}` : styles.link
+            }
+            >
+            <FiSettings />
+            <span>Settings</span>
+            </NavLink>
 
         </nav>
       </div>

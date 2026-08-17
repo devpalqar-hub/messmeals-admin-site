@@ -1,9 +1,12 @@
 import styles from "./MessDetails.module.css";
-import { LuArrowLeft, LuCalendar, LuIndianRupee, LuMail, LuMapPin, LuPackage, LuPackageCheck, LuPencil, LuPhone, LuTruck, LuPlus } from "react-icons/lu";
+import { LuArrowLeft, LuCalendar, LuCreditCard, LuIndianRupee, LuMail, LuMapPin, LuPackage, LuPackageCheck, LuPencil, LuPhone, LuReceipt, LuRefreshCw, LuTruck, LuPlus, LuUsers } from "react-icons/lu";
 import { useNavigate, useParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import { getMessById, getMessStats, type MessDetailsResponse, type MessStats } from "../../services/mess.api";
 import CreatePlanModal from "../../components/ui/CreatePlanModal/CreatePlanModal";
+import { getMessBillingInvoice, settleMessBillingInvoice, updateMessBillingConfig } from "../../services/billing.api";
+import type { BillingMessInvoice, BillingMessInvoiceApiResponse } from "../../types/billing.types";
 
 import { deleteUserSubscription } from "../../services/mess.api";
 import { LuTrash2} from "react-icons/lu";
@@ -58,14 +61,124 @@ const StatCard = ({
 );
 
 
+const MONTH_OPTIONS = [
+  { value: "01", label: "January" },
+  { value: "02", label: "February" },
+  { value: "03", label: "March" },
+  { value: "04", label: "April" },
+  { value: "05", label: "May" },
+  { value: "06", label: "June" },
+  { value: "07", label: "July" },
+  { value: "08", label: "August" },
+  { value: "09", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
+];
+
+const getCurrentYear = () => new Date().getFullYear();
+
+const getCurrentMonth = () => {
+  const today = new Date();
+  return String(today.getMonth() + 1).padStart(2, "0");
+};
+
+const getYearOptions = () => {
+  const currentYear = getCurrentYear();
+  return [currentYear, currentYear - 1, currentYear - 2];
+};
+
+const toUsageMonth = (year: number, month: string) => `${year}-${month}`;
+
+const unwrapInvoice = (
+  response: BillingMessInvoiceApiResponse
+): BillingMessInvoice => {
+  const maybeWrapped = response as { data?: BillingMessInvoice };
+
+  if (
+    maybeWrapped.data &&
+    typeof maybeWrapped.data === "object" &&
+    "id" in maybeWrapped.data
+  ) {
+    return maybeWrapped.data;
+  }
+
+  return response as BillingMessInvoice;
+};
+
+const formatCurrency = (value?: string | number | null) =>
+  `Rs. ${Number(value ?? 0).toLocaleString("en-IN")}`;
+
+const formatDate = (value?: string | null) => {
+  if (!value) return "-";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+};
+
+const formatMonthLabel = (value: string) => {
+  const [year, month] = value.split("-");
+  const date = new Date(Number(year), Number(month) - 1, 1);
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat("en-IN", {
+    month: "long",
+    year: "numeric",
+  }).format(date);
+};
+
+const getApiErrorMessage = (error: unknown, fallback: string) => {
+  if (typeof error === "object" && error !== null) {
+    const err = error as {
+      response?: {
+        data?: {
+          message?: string | string[];
+        };
+      };
+      message?: string;
+    };
+
+    const message = err.response?.data?.message;
+    if (message) {
+      return Array.isArray(message) ? message.join(", ") : message;
+    }
+
+    if (err.message) return err.message;
+  }
+
+  return fallback;
+};
+
 
 const MessDetails = () => {
 const navigate = useNavigate();
 const { id } = useParams();
 const { showToast } = useToast();
+const showToastRef = useRef(showToast);
 const [mess, setMess] = useState<MessDetailsResponse | null>(null);
 
 const [stats, setStats] = useState<MessStats | null>(null);
+const [invoice, setInvoice] = useState<BillingMessInvoice | null>(null);
+const [invoiceYear, setInvoiceYear] = useState(getCurrentYear);
+const [invoiceMonth, setInvoiceMonth] = useState(getCurrentMonth);
+const [invoiceLoading, setInvoiceLoading] = useState(false);
+const [invoiceError, setInvoiceError] = useState<string | null>(null);
+const [invoiceReloadKey, setInvoiceReloadKey] = useState(0);
+const [showSettleModal, setShowSettleModal] = useState(false);
+const [settleYear, setSettleYear] = useState(getCurrentYear);
+const [settleMonth, setSettleMonth] = useState(getCurrentMonth);
+const [settling, setSettling] = useState(false);
+const [showExtendModal, setShowExtendModal] = useState(false);
+const [extendTrialDate, setExtendTrialDate] = useState("");
+const [extendRate, setExtendRate] = useState("");
+const [extending, setExtending] = useState(false);
 
 const [loading, setLoading] = useState(true);
 const [deleteSub, setDeleteSub] = useState<any>(null);
@@ -103,6 +216,22 @@ const safeStats = stats ?? {
 };
 
 const [deletePlanId, setDeletePlanId] = useState<string | null>(null);
+const yearOptions = getYearOptions();
+const invoiceUsageMonth = toUsageMonth(invoiceYear, invoiceMonth);
+const settleUsageMonth = toUsageMonth(settleYear, settleMonth);
+
+const getInvoiceStatusClass = (status: string) => {
+  switch (status.toUpperCase()) {
+    case "PAID":
+      return styles.invoiceStatusPaid;
+    case "OVERDUE":
+      return styles.invoiceStatusOverdue;
+    case "PENDING":
+      return styles.invoiceStatusPending;
+    default:
+      return styles.invoiceStatusNeutral;
+  }
+};
 
 
 useEffect(() => {
@@ -131,6 +260,33 @@ useEffect(() => {
   fetchAll();
 }, [id]);
 
+useEffect(() => {
+  showToastRef.current = showToast;
+}, [showToast]);
+
+useEffect(() => {
+  if (!id) return;
+
+  const fetchInvoice = async () => {
+    try {
+      setInvoiceLoading(true);
+      setInvoiceError(null);
+
+      const res = await getMessBillingInvoice(id, invoiceUsageMonth);
+      setInvoice(unwrapInvoice(res.data));
+    } catch (err) {
+      const message = getApiErrorMessage(err, "Failed to load billing invoice");
+      setInvoice(null);
+      setInvoiceError(message);
+      showToastRef.current(message, "error");
+    } finally {
+      setInvoiceLoading(false);
+    }
+  };
+
+  fetchInvoice();
+}, [id, invoiceUsageMonth, invoiceReloadKey]);
+
 const handlePlanCreated = async () => {
   // Refetch mess details to get the new plan
   if (!id) return;
@@ -140,6 +296,80 @@ const handlePlanCreated = async () => {
     showToast("Plan added successfully", "success");
   } catch (error) {
     console.error("Failed to refetch mess details", error);
+  }
+};
+
+const openSettleModal = () => {
+  setSettleYear(getCurrentYear());
+  setSettleMonth(getCurrentMonth());
+  setShowSettleModal(true);
+};
+
+const handleSettleInvoice = async (event: FormEvent<HTMLFormElement>) => {
+  event.preventDefault();
+  if (!id) return;
+
+  try {
+    setSettling(true);
+    const res = await settleMessBillingInvoice(id, {
+      month: settleUsageMonth,
+    });
+    const settledInvoice = unwrapInvoice(res.data);
+
+    setInvoice(settledInvoice);
+    setInvoiceYear(settleYear);
+    setInvoiceMonth(settleMonth);
+    setInvoiceError(null);
+    setShowSettleModal(false);
+    showToast("Invoice settled successfully", "success");
+  } catch (err) {
+    showToast(getApiErrorMessage(err, "Failed to settle invoice"), "error");
+  } finally {
+    setSettling(false);
+  }
+};
+
+const openExtendModal = () => {
+  setExtendTrialDate("");
+  setExtendRate(invoice?.rate ?? "");
+  setShowExtendModal(true);
+};
+
+const handleExtendBillingConfig = async (
+  event: FormEvent<HTMLFormElement>
+) => {
+  event.preventDefault();
+  if (!id) return;
+
+  const rate = Number(extendRate);
+
+  if (!extendTrialDate) {
+    showToast("Trial end date is required", "error");
+    return;
+  }
+
+  if (!Number.isFinite(rate) || rate < 0) {
+    showToast("Per customer rate override must be 0 or more", "error");
+    return;
+  }
+
+  try {
+    setExtending(true);
+    await updateMessBillingConfig(id, {
+      trialEndsAt: `${extendTrialDate}T23:59:59.000Z`,
+      perCustomerRateOverride: rate,
+    });
+
+    setShowExtendModal(false);
+    setInvoiceReloadKey((key) => key + 1);
+    showToast("Billing config updated successfully", "success");
+  } catch (err) {
+    showToast(
+      getApiErrorMessage(err, "Failed to update billing config"),
+      "error"
+    );
+  } finally {
+    setExtending(false);
   }
 };
 
@@ -166,7 +396,22 @@ if (!mess) return <p>Mess not found</p>;
 
         </div>
 
-        <div className={styles.actions}>
+        <div className={styles.headerActions}>
+          <button
+            type="button"
+            className={`${styles.headerActionBtn} ${styles.settleBtn}`}
+            onClick={openSettleModal}
+          >
+            <LuReceipt size={17} /> Settle
+          </button>
+
+          <button
+            type="button"
+            className={`${styles.headerActionBtn} ${styles.extendBtn}`}
+            onClick={openExtendModal}
+          >
+            <LuCalendar size={17} /> Extend
+          </button>
         </div>
       </div>
 
@@ -228,6 +473,126 @@ if (!mess) return <p>Mess not found</p>;
           sub={`${safeStats.activePartners} active`}
         />
       </div>
+
+      {/* BILLING INVOICE */}
+      <section className={`${styles.card} ${styles.invoiceSection}`}>
+        <div className={styles.invoiceHeader}>
+          <div className={styles.invoiceTitle}>
+            <div className={styles.invoiceIcon}>
+              <LuReceipt size={22} />
+            </div>
+            <div>
+              <h3>Billing Invoice</h3>
+              <span>{formatMonthLabel(invoiceUsageMonth)}</span>
+            </div>
+          </div>
+
+          <div className={styles.invoiceFilters}>
+            <label className={styles.monthFilter}>
+              <span>Year</span>
+              <select
+                value={invoiceYear}
+                onChange={(event) => setInvoiceYear(Number(event.target.value))}
+              >
+                {yearOptions.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className={styles.monthFilter}>
+              <span>Month</span>
+              <select
+                value={invoiceMonth}
+                onChange={(event) => setInvoiceMonth(event.target.value)}
+              >
+                {MONTH_OPTIONS.map((month) => (
+                  <option key={month.value} value={month.value}>
+                    {month.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
+
+        {invoiceLoading ? (
+          <div className={styles.invoiceState}>
+            <div className={styles.invoiceSpinner} />
+            <span>Loading invoice...</span>
+          </div>
+        ) : invoiceError ? (
+          <div className={styles.invoiceState}>
+            <span>{invoiceError}</span>
+            <button
+              type="button"
+              onClick={() => setInvoiceReloadKey((key) => key + 1)}
+            >
+              <LuRefreshCw size={16} /> Retry
+            </button>
+          </div>
+        ) : invoice ? (
+          <>
+            <div className={styles.invoiceSummaryGrid}>
+              <div className={styles.invoiceMetric}>
+                <span>Amount</span>
+                <strong>{formatCurrency(invoice.amount)}</strong>
+              </div>
+
+              <div className={styles.invoiceMetric}>
+                <span>Customer Count</span>
+                <strong>{invoice.customerCount.toLocaleString("en-IN")}</strong>
+              </div>
+
+              <div className={styles.invoiceMetric}>
+                <span>Rate</span>
+                <strong>{formatCurrency(invoice.rate)}</strong>
+              </div>
+
+              <div className={styles.invoiceMetric}>
+                <span>Status</span>
+                <strong
+                  className={`${styles.invoiceStatus} ${getInvoiceStatusClass(
+                    invoice.status
+                  )}`}
+                >
+                  {invoice.status}
+                </strong>
+              </div>
+            </div>
+
+            <div className={styles.invoiceMetaGrid}>
+              <div>
+                <span><LuCalendar size={16} /> Billing Period</span>
+                <strong>
+                  {formatDate(invoice.periodStart)} - {formatDate(invoice.periodEnd)}
+                </strong>
+              </div>
+
+              <div>
+                <span><LuCreditCard size={16} /> Due Date</span>
+                <strong>{formatDate(invoice.dueDate)}</strong>
+              </div>
+
+              <div>
+                <span><LuCreditCard size={16} /> Paid At</span>
+                <strong>{formatDate(invoice.paidAt)}</strong>
+              </div>
+
+              <div>
+                <span><LuUsers size={16} /> Invoice ID</span>
+                <strong>{invoice.id}</strong>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className={styles.invoiceState}>
+            <span>No invoice found for {formatMonthLabel(invoiceUsageMonth)}.</span>
+          </div>
+        )}
+      </section>
 
       {/* INFO GRID */}
       <div className={styles.row}>
@@ -519,6 +884,128 @@ if (!mess) return <p>Mess not found</p>;
       </div>
 
       {/* 🔥 PASTE MODAL RIGHT HERE */}
+      {showSettleModal && (
+        <div
+          className={styles.modalOverlay}
+          onClick={() => !settling && setShowSettleModal(false)}
+        >
+          <form
+            className={`${styles.modal} ${styles.billingModal}`}
+            onClick={(event) => event.stopPropagation()}
+            onSubmit={handleSettleInvoice}
+          >
+            <div className={styles.billingModalHeader}>
+              <div>
+                <h3>Settle Invoice</h3>
+                <p>Select the usage month to settle.</p>
+              </div>
+              <span>{settleUsageMonth}</span>
+            </div>
+
+            <div className={styles.billingFormGrid}>
+              <label>
+                Year
+                <select
+                  value={settleYear}
+                  onChange={(event) => setSettleYear(Number(event.target.value))}
+                >
+                  {yearOptions.map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                Month
+                <select
+                  value={settleMonth}
+                  onChange={(event) => setSettleMonth(event.target.value)}
+                >
+                  {MONTH_OPTIONS.map((month) => (
+                    <option key={month.value} value={month.value}>
+                      {month.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className={styles.modalActions}>
+              <button type="submit" disabled={settling}>
+                {settling ? "Settling..." : "Settle"}
+              </button>
+
+              <button
+                type="button"
+                disabled={settling}
+                onClick={() => setShowSettleModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {showExtendModal && (
+        <div
+          className={styles.modalOverlay}
+          onClick={() => !extending && setShowExtendModal(false)}
+        >
+          <form
+            className={`${styles.modal} ${styles.billingModal}`}
+            onClick={(event) => event.stopPropagation()}
+            onSubmit={handleExtendBillingConfig}
+          >
+            <div className={styles.billingModalHeader}>
+              <div>
+                <h3>Extend Billing</h3>
+                <p>Update trial end date and rate override.</p>
+              </div>
+            </div>
+
+            <div className={styles.billingFormGrid}>
+              <label>
+                Trial Ends At
+                <input
+                  type="date"
+                  value={extendTrialDate}
+                  onChange={(event) => setExtendTrialDate(event.target.value)}
+                />
+              </label>
+
+              <label>
+                Per Customer Rate Override
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="10"
+                  value={extendRate}
+                  onChange={(event) => setExtendRate(event.target.value)}
+                />
+              </label>
+            </div>
+
+            <div className={styles.modalActions}>
+              <button type="submit" disabled={extending}>
+                {extending ? "Submitting..." : "Submit"}
+              </button>
+
+              <button
+                type="button"
+                disabled={extending}
+                onClick={() => setShowExtendModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       {editingSub && (
         <div className={styles.modalOverlay}>
           <div className={styles.modal}>

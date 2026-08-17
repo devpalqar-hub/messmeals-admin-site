@@ -44,7 +44,7 @@ export const updateMessCoverImage = async (id: string, file: File) => {
   // Upload to S3
   const url = await uploadFile(file);
 
-  return api.patch(`/mess/${id}/cover/image`, { url }, {
+  return api.post(`/mess/${id}/cover/image`, { images: [url] }, {
     headers: {
       "Content-Type": "application/json",
     },

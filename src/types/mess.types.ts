@@ -37,6 +37,7 @@ export interface UpdateMessPayload {
   tags: string[];
   features?: string[];
   images?: Array<{ url: string }>;
+  messAdminIds?: string[];
 }
 
 export interface CoverImagePayload {

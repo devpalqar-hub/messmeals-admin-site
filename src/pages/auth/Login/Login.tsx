@@ -105,12 +105,12 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)} 
             />
             {showPassword ? (
-                <FiEyeOff
+                <FiEye
                   className={styles.eye}
                   onClick={() => setShowPassword(false)}
                 />
               ) : (
-                <FiEye
+                <FiEyeOff
                   className={styles.eye}
                   onClick={() => setShowPassword(true)}
                 />

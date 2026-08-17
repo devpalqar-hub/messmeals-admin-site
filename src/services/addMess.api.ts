@@ -74,9 +74,9 @@ export const uploadCoverImage = async (
   const url = await uploadFile(file);
 
   // Update mess with JSON body
-  return api.patch(
+  return api.post(
     `/mess/${messId}/cover/image`,
-    { url },
+    { images: [url] },
     {
       headers: {
         "Content-Type": "application/json",

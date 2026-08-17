@@ -16,6 +16,7 @@ import MessOwners from "./pages/ mess-owners/MessOwners";
 import AddMessOwner from "./pages/ mess-owners/AddMessOwner";
 import AddDeliveryAgent from "./pages/deliveryAgents/AddDeliveryAgent";
 import DeliveryAgentDetails from "./pages/deliveryAgents/DeliveryAgentDetails";
+import Settings from "./pages/settings/Settings";
 
 
 
@@ -51,6 +52,7 @@ function App() {
         <Route path="/deliveries/:id" element={<DeliveryDetails />} />
         <Route path="/mess-enquiries" element={<MessEnquiries />} />
         <Route path="/customer-enquiries" element={<CustomerEnquiries />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
 
   </Routes>

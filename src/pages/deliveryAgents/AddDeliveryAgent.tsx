@@ -111,9 +111,17 @@ export default function AddDeliveryAgent() {
             <label>Phone *</label>
             <input
               name="phone"
+              type="tel"
+              inputMode="numeric"
+              pattern="[0-9]{10}"
+              maxLength={10}
               value={form.phone}
-              placeholder="+919876543210"
+              placeholder="9876543210"
               onChange={handleChange}
+              onInput={(e) => {
+                const input = e.target as HTMLInputElement;
+                input.value = input.value.replace(/[^0-9]/g, "").slice(0, 10);
+              }}
             />
           </div>
 
