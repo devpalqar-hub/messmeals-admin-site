@@ -1,15 +1,32 @@
 import styles from "./AddMess.module.css";
 import { LuArrowLeft, LuPlus } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
-import { createMess } from "../../api/addMess.api";
-import {  useEffect } from "react";
-import api from "../../api/axios"; 
+import { useState, useEffect } from "react";
+import type { ChangeEvent } from "react";
+import { createMess, uploadCoverImage } from "../../services/addMess.api";
+import { getMessOwners } from "../../services/messOwners.api";
+import api from "../../services/axios";
 import { useToast } from "../../components/ui/Toast/ToastContainer";
+
+interface MessOwner {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  is_verified?: boolean;
+  is_active?: boolean;
+  messAdminProfile?: {
+    id: string;
+    messes?: {
+      id: string;
+      name: string;
+    }[];
+  };
+}
 
 export default function AddMess() {
   const navigate = useNavigate();
-  
+
 
   /* ---------------- FORM STATE ---------------- */
 
@@ -23,122 +40,241 @@ export default function AddMess() {
     districtId: "",
     is_active: true,
     is_verified: false,
-    is_premium: false, 
+    isPremium: false,
   });
 
   const { showToast } = useToast();
 
   const [foodTypes, setFoodTypes] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
-  const [messAdminIds] = useState<string[]>([]); // later dynamic
+  const [messAdminIds, setMessAdminIds] = useState<string[]>([]);
+  const [selectedAdmins, setSelectedAdmins] = useState<MessOwner[]>([]);
+  const [owners, setOwners] = useState<MessOwner[]>([]);
+  const [showAdminModal, setShowAdminModal] = useState(false);
+  const [ownerPage, setOwnerPage] = useState(1);
+  const [ownerLimit] = useState(5);
+  const [ownerTotalPages, setOwnerTotalPages] = useState(1);
+  const [ownersLoading, setOwnersLoading] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   const FOOD_TYPE_OPTIONS = ["VEG", "NON_VEG", "MIXED"] as const;
 
-const TAG_OPTIONS = [
-  "HOME_STYLE_FOOD",
-  "MONTHLY_PLANS",
-  "DAILY_FRESH_MEALS",
-  "FIXED_MENU",
-  "HYGIENIC_KITCHEN",
-  "AFFORDABLE_PRICING",
-  "VEG_AND_NON_VEG",
-  "ON_TIME_SERVING",
-  "QUALITY_INGREDIENTS",
-  "CONSISTENT_TASTE",
-  "STUDENT_FRIENDLY",
-  "FAMILY_MESS",
-  "FLEXIBLE_BOOKING",
-  "NO_HIDDEN_CHARGES",
-  "TRUSTED_MESS",
-] as const;
+  const TAG_OPTIONS = [
+    "HOME_STYLE_FOOD",
+    "MONTHLY_PLANS",
+    "DAILY_FRESH_MEALS",
+    "FIXED_MENU",
+    "HYGIENIC_KITCHEN",
+    "AFFORDABLE_PRICING",
+    "VEG_AND_NON_VEG",
+    "ON_TIME_SERVING",
+    "QUALITY_INGREDIENTS",
+    "CONSISTENT_TASTE",
+    "STUDENT_FRIENDLY",
+    "FAMILY_MESS",
+    "FLEXIBLE_BOOKING",
+    "NO_HIDDEN_CHARGES",
+    "TRUSTED_MESS",
+  ] as const;
 
 
   type Day =
-  | "monday"
-  | "tuesday"
-  | "wednesday"
-  | "thursday"
-  | "friday"
-  | "saturday"
-  | "sunday";
+    | "monday"
+    | "tuesday"
+    | "wednesday"
+    | "thursday"
+    | "friday"
+    | "saturday"
+    | "sunday";
 
-const [selectedDay, setSelectedDay] = useState<Day>("monday");
-const [openTime, setOpenTime] = useState("08:00");
-const [closeTime, setCloseTime] = useState("20:00");
+  const [selectedDay, setSelectedDay] = useState<Day>("monday");
+  const [openTime, setOpenTime] = useState("08:00");
+  const [closeTime, setCloseTime] = useState("20:00");
 
-const [openingHours, setOpeningHours] = useState<
-  Record<Day, string>
->({
-  monday: "closed",
-  tuesday: "closed",
-  wednesday: "closed",
-  thursday: "closed",
-  friday: "closed",
-  saturday: "closed",
-  sunday: "closed",
-});
+  const [openingHours, setOpeningHours] = useState<
+    Record<Day, string>
+  >({
+    monday: "closed",
+    tuesday: "closed",
+    wednesday: "closed",
+    thursday: "closed",
+    friday: "closed",
+    saturday: "closed",
+    sunday: "closed",
+  });
   interface District {
-  id: string;
-  name: string;
-}
+    id: string;
+    name: string;
+  }
 
-const [districts, setDistricts] = useState<District[]>([]);
-const [loadingDistricts, setLoadingDistricts] = useState(false);
+
+  // 🔥 PLAN STATE - REMOVED
+  // const [planForm, setPlanForm] = useState({
+  //   planName: "",
+  //   price: "",
+  //   minPrice: "",
+  //   description: "",
+  //   isMonthlyPlan: true,
+  //   isDailyPlan: false,
+  // });
+
+  // const [variationList, setVariationList] = useState<
+  //   Array<{ id: string; title: string; isActive: boolean }>
+  // >([]);
+  // const [selectedVariations, setSelectedVariations] = useState<string[]>([]);
+  // const [planImages, setPlanImages] = useState<File[]>([]);
+  // const [planPreviews, setPlanPreviews] = useState<string[]>([]);
+
+
+
+  // useEffect(() => {
+  //   const fetchVariations = async () => {
+  //     try {
+  //       const res = await api.get("/variation/");
+  //       setVariationList(res.data); // 🔥 your API returns array directly
+  //     } catch (error) {
+  //       console.error("Failed to fetch variations", error);
+  //     }
+  //   };
+
+  //   fetchVariations();
+  // }, []);
+
+
+  // const handleVariationChange = (id: string) => {
+  //   setSelectedVariations((prev) =>
+  //     prev.includes(id)
+  //       ? prev.filter((item) => item !== id)
+  //       : [...prev, id]
+  //   );
+  // };
+
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [loadingDistricts, setLoadingDistricts] = useState(false);
+
   useEffect(() => {
-  const fetchDistricts = async () => {
-    try {
-      setLoadingDistricts(true);
+    const fetchDistricts = async () => {
+      try {
+        setLoadingDistricts(true);
 
-      const res = await api.get("/districts");
-       console.log("DISTRICT RESPONSE:", res.data);
-      if (res.data?.data) {
-        setDistricts(res.data.data);
+        const res = await api.get("/districts");
+        console.log("DISTRICT RESPONSE:", res.data);
+        if (res.data?.data) {
+          setDistricts(res.data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch districts", error);
+      } finally {
+        setLoadingDistricts(false);
       }
+    };
 
-    } catch (error) {
-      console.error("Failed to fetch districts", error);
-    } finally {
-      setLoadingDistricts(false);
-    }
-  };
+    fetchDistricts();
+  }, []);
 
-  fetchDistricts();
-}, []);
+  useEffect(() => {
+    if (!showAdminModal) return;
 
-   useEffect(() => {
-  console.log("DISTRICTS STATE:", districts);
-}, [districts]);
+    const fetchOwners = async () => {
+      try {
+        setOwnersLoading(true);
+        const res = await getMessOwners(ownerPage, ownerLimit);
+        setOwners(res.data.data || []);
+        setOwnerTotalPages(res.data.meta?.totalPages ?? 1);
+      } catch (error) {
+        console.error("Failed to fetch mess admins", error);
+      } finally {
+        setOwnersLoading(false);
+      }
+    };
+
+    fetchOwners();
+  }, [showAdminModal, ownerPage, ownerLimit]);
+
+  useEffect(() => {
+    console.log("DISTRICTS STATE:", districts);
+  }, [districts]);
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
 
 
 
   /* ---------------- HANDLERS ---------------- */
 
-  const handleChange = (e: any) => {
-    const { name, value, type, checked } = e.target;
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const target = e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+    const name = target.name;
+    const value = target.value;
+    const type = target.type;
+    const checked = target instanceof HTMLInputElement ? target.checked : false;
 
     setForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
   };
+
   const handleAddHours = () => {
+    if (openTime >= closeTime) {
+      showToast("Close time must be later than open time", "error");
+      return;
+    }
 
-  setOpeningHours((prev) => ({
-    ...prev,
-    [selectedDay]: `${openTime}-${closeTime}`,
-  }));
-};
+    setOpeningHours((prev) => ({
+      ...prev,
+      [selectedDay]: `${openTime}-${closeTime}`,
+    }));
+  };
 
-   
+  const handleAdminModalClose = () => {
+    setShowAdminModal(false);
+    setOwnerPage(1);
+  };
+
+  const handleToggleAdmin = (owner: MessOwner) => {
+    const profileId = owner.messAdminProfile?.id;
+    if (!profileId) return;
+
+    const alreadySelected = messAdminIds.includes(profileId);
+
+    if (alreadySelected) {
+      setMessAdminIds((prev) => prev.filter((id) => id !== profileId));
+      setSelectedAdmins((prev) => prev.filter((item) => item.id !== owner.id));
+      return;
+    }
+
+    setMessAdminIds((prev) => [...prev, profileId]); // ✅ FIXED
+    setSelectedAdmins((prev) => [...prev, owner]);
+  };
+
+  const getErrorMessage = (error: unknown) => {
+    if (typeof error === "object" && error !== null) {
+      const err = error as {
+        response?: {
+          data?: {
+            message?: string | string[];
+          };
+        };
+      };
+
+      const message = err.response?.data?.message;
+      if (message) {
+        return Array.isArray(message) ? message.join(", ") : message;
+      }
+    }
+
+    return "Something went wrong";
+  };
+
   const handleSubmit = async () => {
-     console.log("FILES STATE:", files);
     try {
       setLoading(true);
-       console.log(createMess)
-      await createMess({
+
+      const res = await createMess({
         ...form,
         openingHours,
         messAdminIds,
@@ -146,26 +282,24 @@ const [loadingDistricts, setLoadingDistricts] = useState(false);
         tags,
         files,
       });
-    showToast("Mess created successfully ", "success");
 
-        navigate("/messes");
-        } catch (error: any) {
-    console.error("Create mess failed", error);
+      const messId = res.data?.data?.id;
 
-    let errorMessage = "Something went wrong";
+      if (coverImage && messId) {
+        console.log("Cover image exists?", coverImage);
+        await uploadCoverImage(messId, coverImage);
+      }
 
-    if (error.response?.data?.message) {
-        if (Array.isArray(error.response.data.message)) {
-        errorMessage = error.response.data.message.join(", ");
-        } else {
-        errorMessage = error.response.data.message;
-        }
+      showToast("Mess created successfully", "success");
+      navigate("/messes");
+    } catch (error: unknown) {
+      console.error("Create mess failed", error);
+      showToast(getErrorMessage(error), "error");
+    } finally {
+      setLoading(false);
     }
-
-    showToast(errorMessage, "error");
-    }
-
   };
+
 
   /* ---------------- UI ---------------- */
 
@@ -183,21 +317,37 @@ const [loadingDistricts, setLoadingDistricts] = useState(false);
         <div className={styles.grid}>
           <div>
             <label>Mess Name *</label>
-            <input name="name"  placeholder="Enter mess name" onChange={handleChange} />
+            <input name="name" placeholder="Enter mess name" onChange={handleChange} />
           </div>
 
           <div>
             <label>Phone *</label>
-            <input name="phone"  placeholder="+91 98765 43210" onChange={handleChange} />
+            <input
+              name="phone"
+              type="tel"
+              inputMode="numeric"
+              pattern="[0-9]{10}"
+              maxLength={10}
+              placeholder="9876543210"
+              value={form.phone}
+              onChange={handleChange}
+              onInput={(e) => {
+                const input = e.target as HTMLInputElement;
+                input.value = input.value.replace(/[^0-9]/g, "").slice(0, 10);
+              }}
+            />
           </div>
 
-          <input
-            type="email"
-            name="email"
-            value={form.email}
-            placeholder="mess@email.com"
-            onChange={handleChange}
+          <div>
+            <label>Email *</label>
+            <input
+              type="email"
+              name="email"
+              value={form.email}
+              placeholder="mess@email.com"
+              onChange={handleChange}
             />
+          </div>
 
 
           <div>
@@ -213,27 +363,27 @@ const [loadingDistricts, setLoadingDistricts] = useState(false);
           <div>
             <label>District *</label>
             <select
-                name="districtId"
-                value={form.districtId}
-                onChange={handleChange}
-                required
+              name="districtId"
+              value={form.districtId}
+              onChange={handleChange}
+              required
             >
-                <option value="">
+              <option value="">
                 {loadingDistricts ? "Loading districts..." : "Select District"}
-                </option>
+              </option>
 
-                {districts.map((district) => (
+              {districts.map((district) => (
                 <option key={district.id} value={district.id}>
-                    {district.name}
+                  {district.name}
                 </option>
-                ))}
+              ))}
             </select>
-            </div>
+          </div>
         </div>
 
         <div className={styles.fullWidth}>
           <label>Description</label>
-          <textarea name="description"  placeholder="Describe the mess..." onChange={handleChange} />
+          <textarea name="description" placeholder="Describe the mess..." onChange={handleChange} />
         </div>
       </div>
 
@@ -270,241 +420,413 @@ const [loadingDistricts, setLoadingDistricts] = useState(false);
 
           <div className={styles.switchItem}>
             <label className={styles.switch}>
-                <input
+              <input
                 type="checkbox"
-                name="is_premium"
-                checked={form.is_premium}
+                name="isPremium"
+                checked={form.isPremium}
                 onChange={handleChange}
-                />
-                <span className={styles.slider}></span>
+              />
+              <span className={styles.slider}></span>
             </label>
             <span>Premium</span>
-            </div>
+          </div>
 
         </div>
       </div>
 
-            {/* OPENING HOURS */}
-            <div className={styles.card}>
-            <div className={styles.cardHeader}>
-                <h3>Opening Hours</h3>
-                <button
-                type="button"
-                className={styles.addSmallBtn}
-                onClick={handleAddHours}
-                >
-                <LuPlus /> Add Hours
-                </button>
-            </div>
-
-            <div className={styles.hoursRow}>
-                <select
-                value={selectedDay}
-                onChange={(e) => setSelectedDay(e.target.value as Day)}
-                >
-                <option value="monday">Monday</option>
-                <option value="tuesday">Tuesday</option>
-                <option value="wednesday">Wednesday</option>
-                <option value="thursday">Thursday</option>
-                <option value="friday">Friday</option>
-                <option value="saturday">Saturday</option>
-                <option value="sunday">Sunday</option>
-                </select>
-
-                <input
-                type="time"
-                value={openTime}
-                onChange={(e) => setOpenTime(e.target.value)}
-                />
-
-                <span>to</span>
-
-                <input
-                type="time"
-                value={closeTime}
-                onChange={(e) => setCloseTime(e.target.value)}
-                />
-            </div>
-            </div>
-            {/* MESS ADMINS */}
-            <div className={styles.card}>
-            <div className={styles.cardHeader}>
-                <h3>Mess Admins</h3>
-
-                <button type="button" className={styles.addSmallBtn}>
-                <LuPlus /> Add Hours
-                </button>
-            </div>
-
-            <div className={styles.emptyState}>
-                No admins added yet. Click "Add Admin" to add one.
-            </div>
+      {/* OPENING HOURS */}
+      <div className={styles.card}>
+        <div className={styles.cardHeader}>
+          <h3>Opening Hours</h3>
+          <button
+            type="button"
+            className={styles.addSmallBtn}
+            onClick={handleAddHours}
+          >
+            <LuPlus /> Add Hours
+          </button>
         </div>
 
-      {/* FOOD TYPES */}
-            <div className={styles.card}>
-            <h3>Food Types</h3>
+        <div className={styles.hoursRow}>
+          <select
+            value={selectedDay}
+            onChange={(e) => setSelectedDay(e.target.value as Day)}
+          >
+            <option value="monday">Monday</option>
+            <option value="tuesday">Tuesday</option>
+            <option value="wednesday">Wednesday</option>
+            <option value="thursday">Thursday</option>
+            <option value="friday">Friday</option>
+            <option value="saturday">Saturday</option>
+            <option value="sunday">Sunday</option>
+          </select>
 
-            <select
-                onChange={(e) => {
-                const value = e.target.value;
-                if (!value || foodTypes.includes(value)) return;
+          <input
+            type="time"
+            value={openTime}
+            onChange={(e) => setOpenTime(e.target.value)}
+          />
 
-                setFoodTypes((prev) => [...prev, value]);
-                }}
-            >
-                <option value="">Select Food Type</option>
-                {FOOD_TYPE_OPTIONS.map((type) => (
-                <option key={type} value={type}>
-                    {type.replace("_", " ")}
-                </option>
-                ))}
-            </select>
+          <span>to</span>
 
-            <div className={styles.tagList}>
-            {foodTypes.map((item, i) => (
-                <div key={i} className={styles.tag}>
-                <span>{item.replace(/_/g, " ")}</span>
-
-                <button
-                    type="button"
-                    className={styles.tagClose}
-                    onClick={() =>
-                    setFoodTypes((prev) =>
-                        prev.filter((_, index) => index !== i)
-                    )
-                    }
-                >
-                    ×
-                </button>
+          <input
+            type="time"
+            value={closeTime}
+            onChange={(e) => setCloseTime(e.target.value)}
+          />
+        </div>
+        <div className={styles.openingHoursList}>
+          {Object.entries(openingHours)
+            .filter(([, value]) => value !== "closed")
+            .map(([day, hours]) => (
+              <div key={day} className={styles.openingHoursItem}>
+                <div>
+                  <strong>{day.charAt(0).toUpperCase() + day.slice(1)}</strong>
+                  <span>{hours}</span>
                 </div>
+                <button
+                  type="button"
+                  className={styles.removeBtnSmall}
+                  onClick={() =>
+                    setOpeningHours((prev) => ({
+                      ...prev,
+                      [day]: "closed",
+                    }))
+                  }
+                >
+                  Remove
+                </button>
+              </div>
             ))}
+        </div>
+      </div>
+      {/* MESS ADMINS */}
+      <div className={styles.card}>
+        <div className={styles.cardHeader}>
+          <h3>Mess Admins</h3>
+
+          <button
+            type="button"
+            className={styles.addSmallBtn}
+            onClick={() => setShowAdminModal(true)}
+          >
+            <LuPlus /> Add Admin
+          </button>
+        </div>
+
+        {selectedAdmins.length > 0 ? (
+          <div className={styles.selectedAdminList}>
+            {selectedAdmins.map((admin) => (
+              <div key={admin.id} className={styles.adminItem}>
+                <div>
+                  <strong>{admin.name}</strong>
+                  <p>{admin.email}</p>
+                </div>
+                <button
+                  type="button"
+                  className={styles.removeBtnSmall}
+                  onClick={() => handleToggleAdmin(admin)}
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className={styles.emptyState}>
+            No admins added yet. Click "Add Admin" to add one.
+          </div>
+        )}
+
+        {showAdminModal && (
+          <div
+            className={styles.modalOverlay}
+            onClick={handleAdminModalClose}
+          >
+            <div
+              className={styles.modalContent}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={styles.modalHeader}>
+                <h3>Select Mess Admin</h3>
+                <button
+                  type="button"
+                  className={styles.closeModalBtn}
+                  onClick={handleAdminModalClose}
+                >
+                  ×
+                </button>
+              </div>
+
+              {ownersLoading ? (
+                <div>Loading admins...</div>
+              ) : owners.length === 0 ? (
+                <div>No mess owners found.</div>
+              ) : (
+                <div className={styles.adminList}>
+                  {owners.map((owner) => (
+                    <button
+                      key={owner.id}
+                      type="button"
+                      className={`${styles.adminListItem} ${messAdminIds.includes(owner.id) ? styles.selectedAdminRow : ""}`}
+                      onClick={() => handleToggleAdmin(owner)}
+                    >
+                      <div>
+                        <strong>{owner.name}</strong>
+                        <p>{owner.email}</p>
+                      </div>
+                      <span>
+                        {messAdminIds.includes(owner.id) ? "Selected" : "Select"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className={styles.pagination}>
+                <button
+                  type="button"
+                  disabled={ownerPage === 1}
+                  onClick={() => setOwnerPage((p) => p - 1)}
+                >
+                  Prev
+                </button>
+                <span>
+                  Page {ownerPage} of {ownerTotalPages}
+                </span>
+                <button
+                  type="button"
+                  disabled={ownerPage === ownerTotalPages}
+                  onClick={() => setOwnerPage((p) => p + 1)}
+                >
+                  Next
+                </button>
+              </div>
+
+              <div className={styles.modalActions}>
+                <button
+                  type="button"
+                  className={styles.cancel}
+                  onClick={handleAdminModalClose}
+                >
+                  Done
+                </button>
+              </div>
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* FOOD TYPES */}
+      <div className={styles.card}>
+        <h3>Food Types</h3>
+
+        <select
+          onChange={(e) => {
+            const value = e.target.value;
+            if (!value || foodTypes.includes(value)) return;
+
+            setFoodTypes((prev) => [...prev, value]);
+          }}
+        >
+          <option value="">Select Food Type</option>
+          {FOOD_TYPE_OPTIONS.map((type) => (
+            <option key={type} value={type}>
+              {type.replace("_", " ")}
+            </option>
+          ))}
+        </select>
+
+        <div className={styles.tagList}>
+          {foodTypes.map((item, i) => (
+            <div key={i} className={styles.tag}>
+              <span>{item.replace(/_/g, " ")}</span>
+
+              <button
+                type="button"
+                className={styles.tagClose}
+                onClick={() =>
+                  setFoodTypes((prev) =>
+                    prev.filter((_, index) => index !== i)
+                  )
+                }
+              >
+                ×
+              </button>
             </div>
+          ))}
+        </div>
+      </div>
 
       {/* TAGS */}
-                <div className={styles.card}>
-                <h3>Tags</h3>
+      <div className={styles.card}>
+        <h3>Tags</h3>
 
-                <select
-                    onChange={(e) => {
-                    const value = e.target.value;
-                    if (!value || tags.includes(value)) return;
+        <select
+          onChange={(e) => {
+            const value = e.target.value;
+            if (!value || tags.includes(value)) return;
 
-                    setTags((prev) => [...prev, value]);
-                    }}
-                >
-                    <option value="">Select Tag</option>
-                    {TAG_OPTIONS.map((tag) => (
-                    <option key={tag} value={tag}>
-                        {tag.replace(/_/g, " ")}
-                    </option>
-                    ))}
-                </select>
+            setTags((prev) => [...prev, value]);
+          }}
+        >
+          <option value="">Select Tag</option>
+          {TAG_OPTIONS.map((tag) => (
+            <option key={tag} value={tag}>
+              {tag.replace(/_/g, " ")}
+            </option>
+          ))}
+        </select>
 
-                <div className={styles.tagList}>
-                {tags.map((item, i) => (
-                    <div key={i} className={styles.tag}>
-                    <span className={styles.tagText}>
-                        {item.replace(/_/g, " ")}
-                    </span>
+        <div className={styles.tagList}>
+          {tags.map((item, i) => (
+            <div key={i} className={styles.tag}>
+              <span className={styles.tagText}>
+                {item.replace(/_/g, " ")}
+              </span>
 
-                    <button
-                        type="button"
-                        className={styles.tagClose}
-                        onClick={() =>
-                        setTags((prev) =>
-                            prev.filter((_, index) => index !== i)
-                        )
-                        }
-                    >
-                        ×
-                    </button>
-                    </div>
-                ))}
-                </div>
+              <button
+                type="button"
+                className={styles.tagClose}
+                onClick={() =>
+                  setTags((prev) =>
+                    prev.filter((_, index) => index !== i)
+                  )
+                }
+              >
+                ×
+              </button>
             </div>
+          ))}
+        </div>
+      </div>
+      {/* COVER IMAGE */}
+      <div className={styles.card}>
+        <h3>Cover Image</h3>
 
-            {/* IMAGES */}
-            <div className={styles.card}>
-            <h3>Images</h3>
+        <label className={styles.uploadBox}>
+          <p>Click to upload cover image</p>
+          <span>PNG, JPG up to 5MB</span>
 
-            <label className={styles.uploadBox}>
-                <p>Click to upload images</p>
-                <span>PNG, JPG up to 5MB</span>
+          <input
+            type="file"
+            accept="image/png, image/jpeg"
+            hidden
+            onChange={(e) => {
+              if (!e.target.files?.[0]) return;
 
-                <input
-                type="file"
-                multiple
-                accept="image/png, image/jpeg"
-                hidden
-                onChange={(e) => {
-                    if (!e.target.files) return;
+              const file = e.target.files[0];
 
-                    const selectedFiles = Array.from(e.target.files);
+              setCoverImage(file);
+              setCoverPreview(URL.createObjectURL(file));
+            }}
+          />
+        </label>
 
-                    // Create preview URLs
-                    const newPreviews = selectedFiles.map((file) =>
-                    URL.createObjectURL(file)
-                    );
+        {coverPreview && (
+          <div className={styles.previewItem}>
+            <img
+              src={coverPreview}
+              alt="cover"
+              className={styles.previewImage}
+            />
 
-                    setFiles((prev) => [...prev, ...selectedFiles]);
-                    setPreviews((prev) => [...prev, ...newPreviews]);
-                }}
+            <button
+              type="button"
+              className={styles.removeBtn}
+              onClick={() => {
+                URL.revokeObjectURL(coverPreview);
+                setCoverImage(null);
+                setCoverPreview(null);
+              }}
+            >
+              ×
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* IMAGES */}
+      <div className={styles.card}>
+        <h3>Images</h3>
+
+        <label className={styles.uploadBox}>
+          <p>Click to upload images</p>
+          <span>PNG, JPG up to 5MB</span>
+
+          <input
+            type="file"
+            multiple
+            accept="image/png, image/jpeg"
+            hidden
+            onChange={(e) => {
+              if (!e.target.files) return;
+
+              const selectedFiles = Array.from(e.target.files);
+
+              // Create preview URLs
+              const newPreviews = selectedFiles.map((file) =>
+                URL.createObjectURL(file)
+              );
+
+              setFiles((prev) => [...prev, ...selectedFiles]);
+              setPreviews((prev) => [...prev, ...newPreviews]);
+            }}
+          />
+        </label>
+
+        {previews.length > 0 && (
+          <div className={styles.fileList}>
+            {previews.map((src, i) => (
+              <div key={i} className={styles.previewItem}>
+                <img
+                  src={src}
+                  alt="preview"
+                  className={styles.previewImage}
                 />
-            </label>
 
-            {previews.length > 0 && (
-                <div className={styles.fileList}>
-                {previews.map((src, i) => (
-                    <div key={i} className={styles.previewItem}>
-                    <img
-                        src={src}
-                        alt="preview"
-                        className={styles.previewImage}
-                    />
+                <button
+                  type="button"
+                  className={styles.removeBtn}
+                  onClick={() => {
+                    const updatedFiles = [...files];
+                    const updatedPreviews = [...previews];
 
-                    <button
-                        type="button"
-                        className={styles.removeBtn}
-                        onClick={() => {
-                        const updatedFiles = [...files];
-                        const updatedPreviews = [...previews];
+                    // Clean memory
+                    URL.revokeObjectURL(updatedPreviews[i]);
 
-                        // Clean memory
-                        URL.revokeObjectURL(updatedPreviews[i]);
+                    updatedFiles.splice(i, 1);
+                    updatedPreviews.splice(i, 1);
 
-                        updatedFiles.splice(i, 1);
-                        updatedPreviews.splice(i, 1);
+                    setFiles(updatedFiles);
+                    setPreviews(updatedPreviews);
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-                        setFiles(updatedFiles);
-                        setPreviews(updatedPreviews);
-                        }}
-                    >
-                        ×
-                    </button>
-                    </div>
-                ))}
-                </div>
-            )}
-            </div>
       {/* ACTIONS */}
-        <div className={styles.actions}>
-            <button
-                className={styles.cancel}
-                onClick={() => navigate("/messes")}
-                >
-                Cancel
-            </button>
+      <div className={styles.actions}>
+        <button
+          className={styles.cancel}
+          onClick={() => navigate("/messes")}
+        >
+          Cancel
+        </button>
 
-            <button
-                className={styles.create}
-                onClick={handleSubmit}
-                disabled={loading}
-                >
-                {loading ? "Creating..." : "Create Mess"}
-            </button>
-            </div>
-            </div>
-        );
-    }
+        <button
+          className={styles.create}
+          onClick={handleSubmit}
+          disabled={loading}
+        >
+          {loading ? "Creating..." : "Create Mess"}
+        </button>
+      </div>
+    </div>
+  );
+}

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import styles from "./Messes.module.css";
 import {  LuEye, LuPlus, LuSearch,LuPencil } from "react-icons/lu";
-import { getMesses, type Mess } from "../../api/mess.api";
+import { getMesses, type Mess } from "../../services/mess.api";
 import { useNavigate } from "react-router-dom";
-import { updateMessStatus } from "../../api/mess.api";
+import { updateMessStatus } from "../../services/mess.api";
 
 export default function Messes() {
   const navigate = useNavigate();
@@ -17,14 +17,18 @@ export default function Messes() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+useEffect(() => {
+  const delayDebounce = setTimeout(() => {
     fetchMesses();
-  }, [page]);
+  }, 400);
+
+  return () => clearTimeout(delayDebounce);
+}, [page, search]);
 
   const fetchMesses = async () => {
     try {
       setLoading(true);
-      const res = await getMesses(page, limit);
+      const res = await getMesses(page, limit, search);
       setMesses(res.data.data);
       setTotalPages(res.data.meta.totalPages);
     } catch (err) {
@@ -55,10 +59,6 @@ const handleToggle = async (id: string, currentStatus: boolean) => {
 };
 
 
-  // frontend search
-  const filtered = messes.filter((m) =>
-    m.name.toLowerCase().includes(search.toLowerCase())
-  );
 
 
   return (
@@ -71,7 +71,10 @@ const handleToggle = async (id: string, currentStatus: boolean) => {
           <input
             placeholder="Search messes..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
           />
         </div>
         <button
@@ -106,7 +109,7 @@ const handleToggle = async (id: string, currentStatus: boolean) => {
                 </td>
               </tr>
             )}
-            {!loading && filtered.map((m) => (
+            {!loading && messes.map((m) => (
               <tr key={m.id}>
                 <td>{m.name}</td>
                 <td className={styles.phone}>{m.phone}</td>
