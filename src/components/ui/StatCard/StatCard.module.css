@@ -1,10 +1,56 @@
 .card {
-  background: #ffffff;
-  border-radius: 14px;
+  position: relative;
+  border-radius: 16px;
   padding: 22px;
-  box-shadow: 0 0 0 1px #e5e7eb;
+  transition: 0.3s ease;
+  overflow: hidden;
+  z-index: 1;
+}
+.card::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 18px;
+  background: linear-gradient(
+    120deg,
+    #fde68a,
+    #56e98c,
+    #d8f3dc,
+    #e2cd7a
+  );
+  background-size: 300% 300%;
+  animation: glowMove 6s linear infinite;
+  z-index: -1;
+  opacity: 0;
+  transition: 0.4s ease;
+}
+.card:hover::before {
+  opacity: 1;
 }
 
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+}
+@keyframes glowMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 300% 50%;
+  }
+}
+
+
+.card:hover .iconBox {
+  transform: scale(1.08);
+}
+
+.iconBox {
+  transition: 0.25s ease;
+}
+
+/* COMMON */
 .top {
   display: flex;
   justify-content: space-between;
@@ -12,29 +58,81 @@
 }
 
 .top p {
-  color: #6b7280;
   font-size: 14px;
+  color: #475569;
 }
 
 .iconBox {
-  background: #ecfdf5;
-  color: #16a34a;
   padding: 10px;
-  border-radius: 10px;
+  border-radius: 12px;
   font-size: 18px;
 }
 
 .card h2 {
-  margin: 12px 0;
+  margin-top: 14px;
   font-size: 28px;
+  font-weight: 700;
 }
 
-.positive {
+/* 🌿 Total Revenue – Dark Green */
+.revenue {
+  background: linear-gradient(135deg, #edf7f1, #d8f3dc);
+}
+.revenue .iconBox {
+  background: #d8f3dc;
+  color: #1b4332;
+}
+
+/* 🥑 Orders – Soft Green */
+.orders {
+  background: linear-gradient(135deg, #f1f8f4, #e2f0e8);
+}
+.orders .iconBox {
+  background: #e2f0e8;
+  color: #4f772d;
+}
+
+/* ✅ Completed – Fresh Emerald */
+.completed {
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+}
+.completed .iconBox {
+  background: #dcfce7;
   color: #16a34a;
-  font-size: 14px;
 }
 
-.negative {
-  color: #ef4444;
-  font-size: 14px;
+/* 🟡 Pending – Egg Yellow */
+.pending {
+  background: linear-gradient(135deg, #fff8e1, #fde68a);
+}
+.pending .iconBox {
+  background: #fde68a;
+  color: #b45309;
+}
+
+/* 🌞 Today – Golden */
+.today {
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+}
+.today .iconBox {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* 🚚 Partners – Earth Tone */
+.partners {
+  background: linear-gradient(135deg, #f6f3f1, #e7e5e4);
+}
+.partners .iconBox {
+  background: #e7e5e4;
+  color: #3a2e2a;
+}
+
+/* 💚 Active Partners */
+.active {
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+}
+.active .iconBox {
+  background: #d1fae5;
+  color: #065f46;
 }

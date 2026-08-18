@@ -80,7 +80,7 @@
   display: block;
 }
 
-.wrapper input,
+.wrapper input:not([type="checkbox"]),
 .wrapper select,
 .wrapper textarea {
   width: 100%;
@@ -92,9 +92,10 @@
   background: #fafafa;
 }
 
-.wrapper input:focus,
+.wrapper input:not([type="checkbox"]):focus,
 .wrapper select:focus,
-.wrapper textarea:focus {
+.wrapper textarea:focus 
+{
   outline: none;
   border-color: #15803d;
   background: #ffffff;
@@ -365,6 +366,297 @@
 .create:disabled {
   background: #9ca3af;
   cursor: not-allowed;
+}
+/* ========================= */
+/* COVER IMAGE */
+/* ========================= */
+
+.coverCard {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.coverPreviewWrapper {
+  position: relative;
+  margin-top: 16px;
+}
+
+.coverPreviewImage {
+  width: 100%;
+  height: 220px; /* Bigger than gallery */
+  object-fit: cover;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+.coverUploadBox {
+  border: 2px dashed #d1d5db;
+  padding: 40px;
+  text-align: center;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: 0.2s ease;
+  margin-top: 12px;
+}
+
+.coverUploadBox:hover {
+  border-color: #15803d;
+  background: #f9fafb;
+}
+.coverRemoveBtn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.coverRemoveBtn:hover {
+  background: #ef4444;
+}
+.coverBadge {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: #15803d;
+  color: white;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+
+/* ===============================
+   PLANS SECTION
+================================= */
+
+.plansCard {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.plansTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  color: #111827;
+}
+
+.planBlock {
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  background: #fafafa;
+  transition: 0.2s ease;
+}
+
+.planBlock:hover {
+  border-color: #15803d;
+  background: #f9fafb;
+}
+
+.planHeader {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: #374151;
+}
+
+/* PLAN GRID */
+.planGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.planField {
+  display: explain;
+  flex-direction: column;
+}
+
+.planField label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #4b5563;
+  margin-bottom: 6px;
+}
+
+.planField input,
+.planField textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  font-size: 14px;
+  background: #ffffff;
+  transition: 0.2s ease;
+}
+
+.planField input:focus,
+.planField textarea:focus {
+  outline: none;
+  border-color: #15803d;
+  box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.1);
+}
+
+.planField textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+/* PLAN TYPE CHECKBOX */
+.planTypeGroup {
+  display: flex;
+  gap: 30px;
+  margin-top: 16px;
+}
+
+.planTypeItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.planTypeItem input {
+  accent-color: #15803d;
+}
+
+/* SEPARATOR */
+.planDivider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 20px 0;
+}
+/* ===============================
+   VARIATIONS
+================================= */
+
+.variationSection {
+  margin-top: 20px;
+}
+
+.variationTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.variationGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.variationItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+.variationItem input[type="checkbox"] {
+  margin-right: 8px;
+}
+
+.variationItem:hover {
+  border-color: #15803d;
+  background: #f0fdf4;
+}
+
+.variationItem input {
+  accent-color: #15803d;
+}
+
+.variationSelected {
+  border-color: #15803d;
+  background: #ecfdf5;
+}
+
+/* 🔥 PLAN IMAGE SECTION */
+.planImageSection {
+  margin-top: 20px;
+}
+
+.planImageTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #444;
+  margin-bottom: 12px;
+}
+
+/* Grid layout */
+.planPreviewGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+/* Individual image box */
+.planPreviewItem {
+  position: relative;
+  width: 100%;
+  height: 110px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f4f6f8;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.planPreviewItem:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
+}
+
+/* Image */
+.planPreviewImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Optional remove button (for future use) */
+.planRemoveBtn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.planRemoveBtn:hover {
+  background: #e11d48;
 }
 
 /* ========================= */

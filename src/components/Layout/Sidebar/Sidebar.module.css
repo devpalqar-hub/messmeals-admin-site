@@ -135,3 +135,58 @@
   background-color: #ef233c1a;
   border-radius: 8px;
 }
+
+@media (max-width: 900px) {
+  .sidebar {
+    width: 100%;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid #eee;
+  }
+
+  .logoBox {
+    height: auto;
+    padding: 14px 16px;
+  }
+
+  .logoBox h3 {
+    font-size: 18px;
+  }
+
+  .menu {
+    flex-direction: row;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 12px 16px;
+  }
+
+  .link,
+  .groupHeader,
+  .subLink {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .subMenu {
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 8px;
+    margin-left: 0;
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .subLink {
+    width: auto;
+  }
+
+  .logout {
+    align-self: flex-start;
+    margin: 0 16px 14px;
+    padding: 10px 12px;
+    font-size: 15px;
+  }
+}

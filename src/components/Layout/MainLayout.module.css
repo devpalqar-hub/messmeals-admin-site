@@ -24,3 +24,24 @@
   padding: 20px;
   background: #f7f9fb;
 }
+
+@media (max-width: 900px) {
+  .layout {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .layout > :first-child {
+    width: 100%;
+  }
+
+  .main {
+    height: auto;
+    min-height: 0;
+  }
+
+  .content {
+    padding: 12px;
+  }
+}

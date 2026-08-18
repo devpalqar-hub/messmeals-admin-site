@@ -1,0 +1,149 @@
+.wrapper {
+  padding: 20px;
+  border-radius: 10px;
+  background: white;
+  min-height: calc(100vh - 80px);
+}
+
+.topBar {
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 360px;
+  border: 1px solid #e5e7eb;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background-color: white;
+}
+
+.searchBox input {
+  border: none;
+  outline: none;
+  width: 100%;
+  background-color: white;
+}
+
+.addButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.addButton:hover {
+  background: #15803d;
+}
+
+.tableBox {
+  overflow-x: auto;
+  background-color: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.tableBox table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tableBox thead {
+  background: #f9fafb;
+}
+
+.tableBox th,
+.tableBox td {
+  padding: 18px 14px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.tableBox th {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.tableBox tr:last-child td {
+  border: none;
+}
+
+.phone {
+  white-space: nowrap;
+}
+
+.active,
+.inactive {
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+
+.active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.inactive {
+  background: #f8fafc;
+  color: #475569;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: center;
+}
+
+.actionsIcon {
+  cursor: pointer;
+  color: #475569;
+  transition: color 0.2s ease;
+}
+
+.actionsIcon:hover {
+  color: #16a34a;
+}
+
+.pagination {
+  margin-top: 15px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.paginationbuttons {
+  display: flex;
+  gap: 15px;
+}
+
+.pagination button {
+  padding: 6px 14px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #16a34a;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

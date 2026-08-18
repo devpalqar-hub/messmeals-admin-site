@@ -1,0 +1,82 @@
+.wrapper {
+  padding: 20px;
+  border-radius: 10px;
+  background: white;
+  min-height: calc(100vh - 80px);
+}
+
+.back {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  margin-bottom: 20px;
+  color: #111827;
+  font-weight: 600;
+}
+
+.card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px 24px;
+}
+
+.grid label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.fullWidth {
+  width: 100%;
+  margin-top: 20px;
+}
+
+.readOnlyValue {
+  min-height: 42px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  color: #111827;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.statCard {
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  text-align: center;
+  transition: transform 0.2s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+}
+
+.statCard span {
+  display: block;
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.statCard strong {
+  font-size: 24px;
+  color: #111827;
+  font-weight: 700;
+}
