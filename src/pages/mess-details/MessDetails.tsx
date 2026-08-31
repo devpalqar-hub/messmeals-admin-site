@@ -5,6 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { getMessById, getMessStats, type MessDetailsResponse, type MessStats } from "../../services/mess.api";
 import CreatePlanModal from "../../components/ui/CreatePlanModal/CreatePlanModal";
+import CreateMenuModal from "../../components/ui/CreateMenuModal/CreateMenuModal";
+import { getMenusByMess, deleteMenu as deleteMenuApi, type MenuResponse } from "../../services/menu.api";
 import { getMessBillingInvoice, settleMessBillingInvoice, updateMessBillingConfig } from "../../services/billing.api";
 import type { BillingMessInvoice, BillingMessInvoiceApiResponse } from "../../types/billing.types";
 
@@ -191,6 +193,13 @@ const [editForm, setEditForm] = useState<any>({
 const [showPlanModal, setShowPlanModal] = useState(false);
 const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
 const [showEditPlanModal, setShowEditPlanModal] = useState(false);
+
+const [menus, setMenus] = useState<MenuResponse[]>([]);
+const [menusLoading, setMenusLoading] = useState(false);
+const [showMenuModal, setShowMenuModal] = useState(false);
+const [editingMenu, setEditingMenu] = useState<MenuResponse | null>(null);
+const [showEditMenuModal, setShowEditMenuModal] = useState(false);
+const [deleteMenuId, setDeleteMenuId] = useState<string | null>(null);
 const DAYS = [
   "SUNDAY",
   "MONDAY",
@@ -263,6 +272,29 @@ useEffect(() => {
 useEffect(() => {
   showToastRef.current = showToast;
 }, [showToast]);
+
+const fetchMenus = async () => {
+  if (!id) return;
+  try {
+    setMenusLoading(true);
+    const res = await getMenusByMess(id);
+    setMenus(res.data?.data || []);
+  } catch (err) {
+    console.error("Failed to load menus", err);
+  } finally {
+    setMenusLoading(false);
+  }
+};
+
+useEffect(() => {
+  fetchMenus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [id]);
+
+// CreateMenuModal shows its own success toast — this just refreshes the list.
+const handleMenuSaved = async () => {
+  await fetchMenus();
+};
 
 useEffect(() => {
   if (!id) return;
@@ -611,21 +643,6 @@ if (!mess) return <p>Mess not found</p>;
         </div>
       </div>
 
-      <div className={styles.row}>
-        <div className={styles.card}>
-          <h3>Opening Hours</h3>
-          {mess.openingHours && Object.keys(mess.openingHours).length > 0 ? (
-            Object.entries(mess.openingHours).map(([day, time]) => (
-              <p key={day}>
-                <strong>{day}:</strong> {time}
-              </p>
-            ))
-          ) : (
-            <p>No opening hours provided.</p>
-          )}
-
-
-        </div>
         <div className={styles.card}>
   <div className={styles.cardHeader}>
     <h3>Meal Plans ({mess.plans?.length || 0})</h3>
@@ -706,6 +723,17 @@ if (!mess) return <p>Mess not found</p>;
             </div>
           )}
 
+          {/* Connected Menus */}
+          {plan.menus?.length > 0 && (
+            <div className={styles.variationChips}>
+              {plan.menus.map((m: any) => (
+                <span key={m.id} className={styles.tagBlue}>
+                  {m.name}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Images */}
           {plan.images?.length > 0 && (
             <div className={styles.planImageGrid}>
@@ -727,6 +755,60 @@ if (!mess) return <p>Mess not found</p>;
   )}
 </div>
 
+      {/* MENUS */}
+      <div className={styles.card}>
+        <div className={styles.cardHeader}>
+          <h3>Menus ({menus.length})</h3>
+          <button
+            type="button"
+            className={styles.addPlanBtn}
+            onClick={() => setShowMenuModal(true)}
+          >
+            <LuPlus size={18} /> Add Menu
+          </button>
+        </div>
+
+        {menusLoading ? (
+          <p className={styles.empty}>Loading menus...</p>
+        ) : menus.length > 0 ? (
+          <div className={styles.planGrid}>
+            {menus.map((menu) => {
+              const dayCount = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+                .filter((d) => ((menu as any)[d]?.length ?? 0) > 0).length;
+
+              return (
+                <div key={menu.id} className={styles.planCard}>
+                  <div className={styles.planHeader}>
+                    <h4>{menu.name}</h4>
+                    <div className={styles.planHeaderRight}>
+                      <button
+                        className={styles.editPlanBtn}
+                        onClick={() => {
+                          setEditingMenu(menu);
+                          setShowEditMenuModal(true);
+                        }}
+                      >
+                        <LuPencil size={16} />
+                      </button>
+                      <button
+                        className={styles.deletePlanBtn}
+                        onClick={() => setDeleteMenuId(menu.id)}
+                      >
+                        <LuTrash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                  <p className={styles.planDescription}>
+                    Scheduled for {dayCount} day{dayCount === 1 ? "" : "s"} of the week
+                  </p>
+                  {!menu.isActive && <span className={styles.tagBlue}>Inactive</span>}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className={styles.empty}>No menus configured yet.</p>
+        )}
       </div>
 
       {/* MESS ADMINS */}
@@ -835,7 +917,16 @@ if (!mess) return <p>Mess not found</p>;
             </div>
             {/* DELIVERY PARTNERS */}
             <div className={styles.card}>
-              <h3>Delivery Partners ({mess?.DeliveryPartnerProfile?.length || 0})</h3>
+              <div className={styles.cardHeader}>
+                <h3>Delivery Partners ({mess?.DeliveryPartnerProfile?.length || 0})</h3>
+                <button
+                  type="button"
+                  className={styles.addPlanBtn}
+                  onClick={() => navigate(`/delivery-agents/add?messId=${id}`)}
+                >
+                  <LuPlus size={18} /> Add Delivery Partner
+                </button>
+              </div>
               {mess?.DeliveryPartnerProfile?.length ? (
                 <ul className={styles.list}>
                   {mess.DeliveryPartnerProfile.map((partner: any) => (
@@ -1183,6 +1274,43 @@ if (!mess) return <p>Mess not found</p>;
         onSuccess={handlePlanCreated}
         isEdit
         plan={editingPlan}
+      />
+
+      {/* CREATE / EDIT MENU MODAL */}
+      <CreateMenuModal
+        messId={id!}
+        isOpen={showMenuModal}
+        onClose={() => setShowMenuModal(false)}
+        onSuccess={handleMenuSaved}
+      />
+      <CreateMenuModal
+        messId={id!}
+        isOpen={showEditMenuModal}
+        onClose={() => {
+          setShowEditMenuModal(false);
+          setEditingMenu(null);
+        }}
+        onSuccess={handleMenuSaved}
+        isEdit
+        menu={editingMenu}
+      />
+
+      <ConfirmModal
+        open={!!deleteMenuId}
+        title="Delete Menu"
+        message="Are you sure you want to delete this menu? This action cannot be undone."
+        onCancel={() => setDeleteMenuId(null)}
+        onConfirm={async () => {
+          if (!deleteMenuId) return;
+          try {
+            await deleteMenuApi(deleteMenuId);
+            setMenus((prev) => prev.filter((m) => m.id !== deleteMenuId));
+            setDeleteMenuId(null);
+          } catch (err) {
+            console.error("Failed to delete menu", err);
+            setDeleteMenuId(null);
+          }
+        }}
       />
 
     </div>

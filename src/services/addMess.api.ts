@@ -17,7 +17,6 @@ export const createMess = async (data: {
   isPremium: boolean;
   location: string;
   districtId: string;
-  openingHours: Record<string, string>;
   messAdminIds: string[];
   foodTypes: string[];
   tags: string[];
@@ -46,7 +45,6 @@ export const createMess = async (data: {
     isPremium: data.isPremium,
     location: data.location,
     districtId: data.districtId,
-    openingHours: data.openingHours,
     messAdminIds: data.messAdminIds,
     foodTypes: data.foodTypes,
     tags: data.tags,

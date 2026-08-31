@@ -13,7 +13,6 @@ export interface CreateMessPayload {
   isPremium: boolean;
   location: string;
   districtId: string;
-  openingHours: Record<string, string>;
   messAdminIds: string[];
   foodTypes: string[];
   tags: string[];
@@ -32,12 +31,20 @@ export interface UpdateMessPayload {
   isPremium: boolean;
   location: string;
   districtId: string;
-  openingHours: Record<string, string>;
   foodTypes: string[];
   tags: string[];
   features?: string[];
   images?: Array<{ url: string }>;
   messAdminIds?: string[];
+  icon?: string;
+  latitude?: string;
+  longitude?: string;
+}
+
+/** Superadmin-only: PATCH /mess/:id/listing */
+export interface UpdateMessListingPayload {
+  isListed?: boolean;
+  isFeatured?: boolean;
 }
 
 export interface CoverImagePayload {
@@ -56,7 +63,6 @@ export interface MessDetailsResponse {
   isPremium: boolean;
   location: string;
   districtId: string;
-  openingHours?: Record<string, string>;
   features?: string[];
   createdAt: string;
   updatedAt: string;

@@ -22,7 +22,6 @@ export interface MessDetailsResponse {
   isPremium: boolean;
   is_active: boolean;
   createdAt: string;
-  openingHours: Record<string, string>;
   images: { id: string; url: string; isCover: boolean }[];
   messAdmins: MessAdmin[];
   plans: any[];

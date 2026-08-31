@@ -13,6 +13,7 @@ export const createPlan = async (data: {
   description: string;
   messId: string;
   variationIds: string[];
+  menuIds?: string[];
   isMonthlyPlan: boolean;
   isDailyPlan: boolean;
   planImages?: File[];
@@ -35,6 +36,7 @@ export const createPlan = async (data: {
     description: data.description,
     messId: data.messId,
     variationIds: data.variationIds,
+    menuIds: data.menuIds,
     isMonthlyPlan: data.isMonthlyPlan,
     isDailyPlan: data.isDailyPlan,
     images: imageUrls.length > 0 ? imageUrls : undefined,
@@ -58,6 +60,7 @@ export const updatePlan = async (
     minPrice?: number | string;
     description: string;
     variationIds: string[];
+    menuIds?: string[];
     isMonthlyPlan: boolean;
     isDailyPlan: boolean;
   }
@@ -68,6 +71,7 @@ export const updatePlan = async (
     minPrice: data.minPrice ? (typeof data.minPrice === "string" ? parseInt(data.minPrice) : data.minPrice) : undefined,
     description: data.description,
     variationIds: data.variationIds,
+    menuIds: data.menuIds,
     isMonthlyPlan: data.isMonthlyPlan,
     isDailyPlan: data.isDailyPlan,
   };
