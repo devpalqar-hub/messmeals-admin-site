@@ -30,7 +30,6 @@ export interface Mess {
   latitude?: string;
   logitude?: string;
   is_verified: boolean;
-  openingHours?: string;
   location?: string;
   createdAt: string;
   updatedAt: string;
