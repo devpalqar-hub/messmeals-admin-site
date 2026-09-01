@@ -58,25 +58,20 @@ const configToForm = (config: BillingGlobalConfig): FormState => ({
   graceDaysAfterDue: String(config.graceDaysAfterDue ?? ""),
 });
 
-const getErrorMessage = (error: unknown, fallback: string) => {
+const getErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === "object" && error !== null) {
-    const err = error as {
-      response?: {
-        data?: {
-          message?: string | string[];
-        };
-      };
-      message?: string;
-    };
-
+    const err = error as any;
     const message = err.response?.data?.message;
     if (message) {
-      return Array.isArray(message) ? message.join(", ") : message;
+      if (Array.isArray(message)) return message.map((m) => (typeof m === "string" ? m : JSON.stringify(m))).join(", ");
+      if (typeof message === "string") return message;
+      if (typeof message === "object" && message !== null) {
+        if (typeof message.message === "string") return message.message;
+        return JSON.stringify(message);
+      }
     }
-
-    if (err.message) return err.message;
+    if (err.message && typeof err.message === "string") return err.message;
   }
-
   return fallback;
 };
 
