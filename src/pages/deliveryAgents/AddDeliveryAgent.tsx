@@ -1,14 +1,16 @@
 import React, { useState } from "react";
 import type { ChangeEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { LuArrowLeft, LuPlus } from "react-icons/lu";
 import styles from "./AddDeliveryAgent.module.css";
 import { createDeliveryAgent } from "../../services/deliveryAgents.api";
-import { getMesses, type Mess } from "../../services/mess.api";
+import { getMesses, getMessById, type Mess } from "../../services/mess.api";
 import { useToast } from "../../components/ui/Toast/ToastContainer";
 
 export default function AddDeliveryAgent() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const presetMessId = searchParams.get("messId") || "";
   const { showToast } = useToast();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -16,7 +18,7 @@ export default function AddDeliveryAgent() {
     phone: "",
     email: "",
     address: "",
-    messId: "",
+    messId: presetMessId,
   });
 
   // Mess selection modal state
@@ -34,6 +36,32 @@ export default function AddDeliveryAgent() {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
+
+  // Arrived from a mess's detail page ("Add Delivery Partner") — preselect that mess.
+  React.useEffect(() => {
+    if (!presetMessId) return;
+
+    const fetchPresetMess = async () => {
+      try {
+        const res = await getMessById(presetMessId);
+        const data = res.data;
+        setSelectedMess({
+          id: data.id,
+          name: data.name,
+          phone: data.phone,
+          email: data.email,
+          location: data.location ?? null,
+          isPremium: data.isPremium,
+          is_active: data.is_active,
+          createdAt: data.createdAt,
+        });
+      } catch (error) {
+        console.error("Failed to load preselected mess", error);
+      }
+    };
+
+    fetchPresetMess();
+  }, [presetMessId]);
 
   // Fetch messes when modal opens or page changes
   React.useEffect(() => {

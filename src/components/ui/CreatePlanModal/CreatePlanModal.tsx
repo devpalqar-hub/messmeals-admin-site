@@ -3,7 +3,9 @@ import { LuX } from "react-icons/lu";
 import styles from "./CreatePlanModal.module.css";
 import api from "../../../services/axios";
 import { addPlanImages, createPlan, removePlanImage, updatePlan } from "../../../services/plans.api";
-import type { Plan } from "../../../types/plan.types";import { useToast } from "../Toast/ToastContainer";
+import { getMenusByMess, type MenuResponse } from "../../../services/menu.api";
+import type { Plan } from "../../../types/plan.types";
+import { useToast } from "../Toast/ToastContainer";
 
 interface CreatePlanModalProps {
   messId: string;
@@ -37,6 +39,8 @@ export default function CreatePlanModal({
     Array<{ id: string; title: string; isActive: boolean }>
   >([]);
   const [selectedVariations, setSelectedVariations] = useState<string[]>([]);
+  const [menuList, setMenuList] = useState<MenuResponse[]>([]);
+  const [selectedMenus, setSelectedMenus] = useState<string[]>([]);
   const [planImages, setPlanImages] = useState<File[]>([]);
   const [planPreviews, setPlanPreviews] = useState<string[]>([]);
   const [existingImages, setExistingImages] = useState<
@@ -62,6 +66,21 @@ const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
   }, [isOpen]);
 
   useEffect(() => {
+    if (!isOpen || !messId) return;
+
+    const fetchMenus = async () => {
+      try {
+        const res = await getMenusByMess(messId);
+        setMenuList(res.data?.data || []);
+      } catch (error) {
+        console.error("Failed to fetch menus", error);
+      }
+    };
+
+    fetchMenus();
+  }, [isOpen, messId]);
+
+  useEffect(() => {
     if (!plan || !isEdit) return;
 
     setForm({
@@ -77,6 +96,8 @@ const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
       plan.Variation?.map((v) => v.id) || []
     );
 
+    setSelectedMenus(plan.menus?.map((m) => m.id) || []);
+
     setExistingImages(plan.images || []);
     setPlanPreviews([]);
     setPlanImages([]);
@@ -84,6 +105,14 @@ const [deletedImageIds, setDeletedImageIds] = useState<string[]>([]);
 
   const handleVariationChange = (id: string) => {
     setSelectedVariations((prev) =>
+      prev.includes(id)
+        ? prev.filter((item) => item !== id)
+        : [...prev, id]
+    );
+  };
+
+  const handleMenuChange = (id: string) => {
+    setSelectedMenus((prev) =>
       prev.includes(id)
         ? prev.filter((item) => item !== id)
         : [...prev, id]
@@ -121,6 +150,7 @@ const handleSubmit = async () => {
         minPrice: form.minPrice,
         description: form.description,
         variationIds: selectedVariations,
+        menuIds: selectedMenus,
         isMonthlyPlan: form.isMonthlyPlan,
         isDailyPlan: form.isDailyPlan,
       });
@@ -146,6 +176,7 @@ const handleSubmit = async () => {
         description: form.description,
         messId,
         variationIds: selectedVariations,
+        menuIds: selectedMenus,
         isMonthlyPlan: form.isMonthlyPlan,
         isDailyPlan: form.isDailyPlan,
         planImages,
@@ -180,6 +211,7 @@ const handleSubmit = async () => {
       isDailyPlan: false,
     });
     setSelectedVariations([]);
+    setSelectedMenus([]);
     setPlanImages([]);
     setPlanPreviews([]);
     setExistingImages([]);
@@ -297,6 +329,28 @@ const handleSubmit = async () => {
             </div>
             {variationList.length === 0 && (
               <p className={styles.emptyText}>No variations available</p>
+            )}
+          </div>
+
+          {/* MENUS */}
+          <div className={styles.formGroup}>
+            <label>Menus (optional)</label>
+            <div className={styles.variationGrid}>
+              {menuList
+                .filter((m) => m.isActive)
+                .map((menu) => (
+                  <label key={menu.id} className={styles.variationItem}>
+                    <input
+                      type="checkbox"
+                      checked={selectedMenus.includes(menu.id)}
+                      onChange={() => handleMenuChange(menu.id)}
+                    />
+                    <span>{menu.name}</span>
+                  </label>
+                ))}
+            </div>
+            {menuList.length === 0 && (
+              <p className={styles.emptyText}>No menus available for this mess yet</p>
             )}
           </div>
 

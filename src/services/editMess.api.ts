@@ -1,6 +1,6 @@
 import api from "./axios";
 import { uploadFile } from "./upload.service";
-import type { UpdateMessPayload } from "../types/mess.types";
+import type { UpdateMessPayload, UpdateMessListingPayload } from "../types/mess.types";
 
 export const updateMess = async (
   id: string,
@@ -55,6 +55,29 @@ export const deleteMessImage = (messId: string, imageId: string) => {
   return api.delete(
     `/mess/${messId}/gallery/images/${imageId}`
   );
+};
+
+/**
+ * Upload an icon/logo image to S3 and set it on the mess.
+ */
+export const updateMessIcon = async (id: string, file: File) => {
+  const url = await uploadFile(file);
+
+  return api.patch(
+    `/mess/${id}`,
+    { icon: url },
+    { headers: { "Content-Type": "application/json" } }
+  );
+};
+
+/**
+ * Superadmin-only: whether this mess is listed on the public website at all,
+ * and whether it's eligible for the featured/nearby section.
+ */
+export const updateMessListing = (id: string, data: UpdateMessListingPayload) => {
+  return api.patch(`/mess/${id}/listing`, data, {
+    headers: { "Content-Type": "application/json" },
+  });
 };
 
 /**

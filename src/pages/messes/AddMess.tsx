@@ -80,30 +80,6 @@ export default function AddMess() {
   ] as const;
 
 
-  type Day =
-    | "monday"
-    | "tuesday"
-    | "wednesday"
-    | "thursday"
-    | "friday"
-    | "saturday"
-    | "sunday";
-
-  const [selectedDay, setSelectedDay] = useState<Day>("monday");
-  const [openTime, setOpenTime] = useState("08:00");
-  const [closeTime, setCloseTime] = useState("20:00");
-
-  const [openingHours, setOpeningHours] = useState<
-    Record<Day, string>
-  >({
-    monday: "closed",
-    tuesday: "closed",
-    wednesday: "closed",
-    thursday: "closed",
-    friday: "closed",
-    saturday: "closed",
-    sunday: "closed",
-  });
   interface District {
     id: string;
     name: string;
@@ -218,18 +194,6 @@ export default function AddMess() {
     }));
   };
 
-  const handleAddHours = () => {
-    if (openTime >= closeTime) {
-      showToast("Close time must be later than open time", "error");
-      return;
-    }
-
-    setOpeningHours((prev) => ({
-      ...prev,
-      [selectedDay]: `${openTime}-${closeTime}`,
-    }));
-  };
-
   const handleAdminModalClose = () => {
     setShowAdminModal(false);
     setOwnerPage(1);
@@ -251,22 +215,20 @@ export default function AddMess() {
     setSelectedAdmins((prev) => [...prev, owner]);
   };
 
-  const getErrorMessage = (error: unknown) => {
+  const getErrorMessage = (error: unknown): string => {
     if (typeof error === "object" && error !== null) {
-      const err = error as {
-        response?: {
-          data?: {
-            message?: string | string[];
-          };
-        };
-      };
-
+      const err = error as any;
       const message = err.response?.data?.message;
       if (message) {
-        return Array.isArray(message) ? message.join(", ") : message;
+        if (Array.isArray(message)) return message.map((m) => (typeof m === "string" ? m : JSON.stringify(m))).join(", ");
+        if (typeof message === "string") return message;
+        if (typeof message === "object" && message !== null) {
+          if (typeof message.message === "string") return message.message;
+          return JSON.stringify(message);
+        }
       }
+      if (err.message && typeof err.message === "string") return err.message;
     }
-
     return "Something went wrong";
   };
 
@@ -276,7 +238,6 @@ export default function AddMess() {
 
       const res = await createMess({
         ...form,
-        openingHours,
         messAdminIds,
         foodTypes,
         tags,
@@ -434,72 +395,6 @@ export default function AddMess() {
         </div>
       </div>
 
-      {/* OPENING HOURS */}
-      <div className={styles.card}>
-        <div className={styles.cardHeader}>
-          <h3>Opening Hours</h3>
-          <button
-            type="button"
-            className={styles.addSmallBtn}
-            onClick={handleAddHours}
-          >
-            <LuPlus /> Add Hours
-          </button>
-        </div>
-
-        <div className={styles.hoursRow}>
-          <select
-            value={selectedDay}
-            onChange={(e) => setSelectedDay(e.target.value as Day)}
-          >
-            <option value="monday">Monday</option>
-            <option value="tuesday">Tuesday</option>
-            <option value="wednesday">Wednesday</option>
-            <option value="thursday">Thursday</option>
-            <option value="friday">Friday</option>
-            <option value="saturday">Saturday</option>
-            <option value="sunday">Sunday</option>
-          </select>
-
-          <input
-            type="time"
-            value={openTime}
-            onChange={(e) => setOpenTime(e.target.value)}
-          />
-
-          <span>to</span>
-
-          <input
-            type="time"
-            value={closeTime}
-            onChange={(e) => setCloseTime(e.target.value)}
-          />
-        </div>
-        <div className={styles.openingHoursList}>
-          {Object.entries(openingHours)
-            .filter(([, value]) => value !== "closed")
-            .map(([day, hours]) => (
-              <div key={day} className={styles.openingHoursItem}>
-                <div>
-                  <strong>{day.charAt(0).toUpperCase() + day.slice(1)}</strong>
-                  <span>{hours}</span>
-                </div>
-                <button
-                  type="button"
-                  className={styles.removeBtnSmall}
-                  onClick={() =>
-                    setOpeningHours((prev) => ({
-                      ...prev,
-                      [day]: "closed",
-                    }))
-                  }
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-        </div>
-      </div>
       {/* MESS ADMINS */}
       <div className={styles.card}>
         <div className={styles.cardHeader}>
