@@ -1,4 +1,8 @@
 import api from "./axios";
+import type {
+  CreateMessWithOwnerPayload,
+  CreateMessWithOwnerResponse,
+} from "../types/messOwner.types";
 
 export const getMessOwners = (
   page = 1,
@@ -28,4 +32,12 @@ export const verifyMessOwnerOtp = (data: {
   otp: string;
 }) => {
   return api.post("/auth/verify-otp", data);
+};
+
+/**
+ * Superadmin direct-create flow: creates the mess owner (MESSADMIN) account first,
+ * then creates the mess linked to that owner — in one call, no OTP required.
+ */
+export const createMessWithOwner = (payload: CreateMessWithOwnerPayload) => {
+  return api.post<CreateMessWithOwnerResponse>("/auth/superadmin/mess", payload);
 };

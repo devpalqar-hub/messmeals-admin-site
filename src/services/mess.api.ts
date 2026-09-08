@@ -11,6 +11,44 @@ export interface Mess {
   createdAt: string;
 }
 
+export interface SubscriptionCustomer {
+  id: string;
+  name: string;
+  phone: string;
+  email: string | null;
+}
+
+export interface SubscriptionPlan {
+  id: string;
+  planName: string;
+  price: number | string;
+}
+
+export interface SubscriptionDeliveryPartner {
+  user?: { id: string; name: string; phone: string } | null;
+}
+
+export interface UserSubscription {
+  id: string;
+  scheduleType: string;
+  selectedDays?: string[] | null;
+  start_date: string;
+  end_date?: string | null;
+  isActive: boolean;
+  is_active: boolean;
+  cancelled_on?: string | null;
+  pause_start_date?: string | null;
+  pause_end_date?: string | null;
+  totalPrice: number | string;
+  discountedPrice: number | string;
+  CustomerProfile?: {
+    id: string;
+    user?: SubscriptionCustomer | null;
+  } | null;
+  plan?: SubscriptionPlan | null;
+  DeliveryPartnerProfile?: SubscriptionDeliveryPartner | null;
+}
+
 export interface MessDetailsResponse {
   id: string;
   name: string;
@@ -22,12 +60,11 @@ export interface MessDetailsResponse {
   isPremium: boolean;
   is_active: boolean;
   createdAt: string;
-  openingHours: Record<string, string>;
   images: { id: string; url: string; isCover: boolean }[];
   messAdmins: MessAdmin[];
   plans: any[];
   DeliveryPartnerProfile: any[];
-  UserSubscriptions: any[];
+  UserSubscriptions: UserSubscription[];
 }
 
 export interface MessStats {

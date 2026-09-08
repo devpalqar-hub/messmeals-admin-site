@@ -11,6 +11,8 @@ import {
   updateMessImages,
   deleteMessImage,
   updateMessCoverImage,
+  updateMessIcon,
+  updateMessListing,
 } from "../../services/editMess.api";
 
 interface MessOwner {
@@ -29,11 +31,6 @@ interface MessOwner {
   };
 }
 
-interface District {
-  id: string;
-  name: string;
-}
-
 export default function EditMess() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -46,35 +43,24 @@ export default function EditMess() {
     phone: "",
     email: "",
     location: "",
-    districtId: "",
+    latitude: "",
+    longitude: "",
     is_active: true,
     is_verified: false,
     isPremium: false,
   });
 
-  const [loading, setLoading] = useState(true);
-
-  // Opening hours
-  const [openingHours, setOpeningHours] = useState<Record<string, string>>({
-    monday: "closed",
-    tuesday: "closed",
-    wednesday: "closed",
-    thursday: "closed",
-    friday: "closed",
-    saturday: "closed",
-    sunday: "closed",
+  // Public website listing (superadmin-only) — separate endpoint from the general update.
+  const [listing, setListing] = useState({
+    isListed: false,
+    isFeatured: false,
   });
-  const [selectedDay, setSelectedDay] = useState("monday");
-  const [openTime, setOpenTime] = useState("08:00");
-  const [closeTime, setCloseTime] = useState("20:00");
+
+  const [loading, setLoading] = useState(true);
 
   // Arrays/tags/food types
   const [foodTypes, setFoodTypes] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
-
-  // Districts
-  const [districts, setDistricts] = useState<District[]>([]);
-  const [loadingDistricts, setLoadingDistricts] = useState(false);
 
   // Mess owners/admins
   const [messAdminIds, setMessAdminIds] = useState<string[]>([]);
@@ -85,6 +71,11 @@ export default function EditMess() {
   const [ownerLimit] = useState(5);
   const [ownerTotalPages, setOwnerTotalPages] = useState(1);
   const [ownersLoading, setOwnersLoading] = useState(false);
+
+  // Icon / logo
+  const [existingIcon, setExistingIcon] = useState<string | null>(null);
+  const [iconImage, setIconImage] = useState<File | null>(null);
+  const [iconPreview, setIconPreview] = useState<string | null>(null);
 
   // Cover image
   const [existingCover, setExistingCover] = useState<{ id: string; url: string } | null>(null);
@@ -123,24 +114,6 @@ export default function EditMess() {
       .replace(/_/g, " ")
       .replace(/\b\w/g, (char) => char.toUpperCase());
 
-  // Fetch districts
-  useEffect(() => {
-    const fetchDistricts = async () => {
-      try {
-        setLoadingDistricts(true);
-        const res = await api.get("/districts");
-        if (res.data?.data) {
-          setDistricts(res.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch districts", error);
-      } finally {
-        setLoadingDistricts(false);
-      }
-    };
-    fetchDistricts();
-  }, []);
-
   // Fetch mess details
   useEffect(() => {
     const fetchMess = async () => {
@@ -156,25 +129,22 @@ export default function EditMess() {
           phone: data.phone || "",
           email: data.email || "",
           location: data.location || "",
-          districtId: data.districtId || "",
+          latitude: data.latitude || "",
+          longitude: data.logitude || "",
           is_active: data.is_active ?? false,
           is_verified: data.is_verified ?? false,
           isPremium: data.isPremium ?? false,
         });
 
+        setListing({
+          isListed: data.isListed ?? false,
+          isFeatured: data.isFeatured ?? false,
+        });
+
+        setExistingIcon(data.icon || null);
+
         setFoodTypes(data.foodTypes?.map((item: any) => item.foodType) || []);
         setTags(data.tags?.map((item: any) => item.tag) || []);
-
-        setOpeningHours({
-          monday: "closed",
-          tuesday: "closed",
-          wednesday: "closed",
-          thursday: "closed",
-          friday: "closed",
-          saturday: "closed",
-          sunday: "closed",
-          ...(data.openingHours || {}),
-        });
 
         if (data.images && data.images.length > 0) {
           const cover = data.images.find((img: any) => img.isCover);
@@ -254,16 +224,16 @@ export default function EditMess() {
     }));
   };
 
-  const handleAddHours = () => {
-    if (openTime >= closeTime) {
-      showToast("Close time must be later than open time", "error");
-      return;
-    }
+  const handleListingChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setListing((prev) => ({ ...prev, [name]: checked }));
+  };
 
-    setOpeningHours((prev) => ({
-      ...prev,
-      [selectedDay]: `${openTime}-${closeTime}`,
-    }));
+  const handleIconChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.[0]) return;
+    const file = e.target.files[0];
+    setIconImage(file);
+    setIconPreview(URL.createObjectURL(file));
   };
 
   const handleAdminModalClose = () => {
@@ -317,20 +287,19 @@ export default function EditMess() {
     setPreviews(updatedPreviews);
   };
 
-  const getErrorMessage = (error: unknown) => {
+  const getErrorMessage = (error: unknown): string => {
     if (typeof error === "object" && error !== null) {
-      const err = error as {
-        response?: {
-          data?: {
-            message?: string | string[];
-          };
-        };
-      };
-
+      const err = error as any;
       const message = err.response?.data?.message;
       if (message) {
-        return Array.isArray(message) ? message.join(", ") : message;
+        if (Array.isArray(message)) return message.map((m) => (typeof m === "string" ? m : JSON.stringify(m))).join(", ");
+        if (typeof message === "string") return message;
+        if (typeof message === "object" && message !== null) {
+          if (typeof message.message === "string") return message.message;
+          return JSON.stringify(message);
+        }
       }
+      if (err.message && typeof err.message === "string") return err.message;
     }
     return "Something went wrong";
   };
@@ -356,12 +325,11 @@ export default function EditMess() {
         is_verified: form.is_verified,
         isPremium: form.isPremium,
         location: form.location,
-        districtId: form.districtId,
-        openingHours,
+        latitude: form.latitude || undefined,
+        longitude: form.longitude || undefined,
         foodTypes,
         tags,
         features: [],
-        messAdminIds,
       };
 
       // 1️⃣ Delete removed images from backend
@@ -384,8 +352,16 @@ export default function EditMess() {
         await updateMessCoverImage(id, coverImage);
       }
 
+      // 3️⃣b Upload icon/logo to backend
+      if (iconImage) {
+        await updateMessIcon(id, iconImage);
+      }
+
       // 4️⃣ Update mess details LAST
       await updateMess(id, payload);
+
+      // 5️⃣ Superadmin-only public listing settings (separate endpoint)
+      await updateMessListing(id, listing);
 
       showToast("Mess updated successfully", "success");
       navigate("/messes");
@@ -471,23 +447,27 @@ export default function EditMess() {
           </div>
 
           <div>
-            <label>District *</label>
-            <select
-              name="districtId"
-              value={form.districtId}
+            <label>Latitude</label>
+            <input
+              name="latitude"
+              type="text"
+              inputMode="decimal"
+              placeholder="9.9312"
+              value={form.latitude}
               onChange={handleChange}
-              required
-            >
-              <option value="">
-                {loadingDistricts ? "Loading districts..." : "Select District"}
-              </option>
+            />
+          </div>
 
-              {districts.map((district) => (
-                <option key={district.id} value={district.id}>
-                  {district.name}
-                </option>
-              ))}
-            </select>
+          <div>
+            <label>Longitude</label>
+            <input
+              name="longitude"
+              type="text"
+              inputMode="decimal"
+              placeholder="76.2673"
+              value={form.longitude}
+              onChange={handleChange}
+            />
           </div>
         </div>
 
@@ -548,71 +528,39 @@ export default function EditMess() {
         </div>
       </div>
 
-      {/* OPENING HOURS */}
+      {/* PUBLIC LISTING (superadmin-only) */}
       <div className={styles.card}>
-        <div className={styles.cardHeader}>
-          <h3>Opening Hours</h3>
-          <button
-            type="button"
-            className={styles.addSmallBtn}
-            onClick={handleAddHours}
-          >
-            <LuPlus /> Add Hours
-          </button>
-        </div>
+        <h3>Public Listing</h3>
+        <p style={{ color: "#6b7280", fontSize: 13, margin: "4px 0 12px" }}>
+          Controls whether this mess appears on the public website (open/messes API).
+        </p>
 
-        <div className={styles.hoursRow}>
-          <select
-            value={selectedDay}
-            onChange={(e) => setSelectedDay(e.target.value)}
-          >
-            <option value="monday">Monday</option>
-            <option value="tuesday">Tuesday</option>
-            <option value="wednesday">Wednesday</option>
-            <option value="thursday">Thursday</option>
-            <option value="friday">Friday</option>
-            <option value="saturday">Saturday</option>
-            <option value="sunday">Sunday</option>
-          </select>
+        <div className={styles.switchGroup}>
+          <div className={styles.switchItem}>
+            <label className={styles.switch}>
+              <input
+                type="checkbox"
+                name="isListed"
+                checked={listing.isListed}
+                onChange={handleListingChange}
+              />
+              <span className={styles.slider}></span>
+            </label>
+            <span>List on Website</span>
+          </div>
 
-          <input
-            type="time"
-            value={openTime}
-            onChange={(e) => setOpenTime(e.target.value)}
-          />
-
-          <span>to</span>
-
-          <input
-            type="time"
-            value={closeTime}
-            onChange={(e) => setCloseTime(e.target.value)}
-          />
-        </div>
-
-        <div className={styles.openingHoursList}>
-          {Object.entries(openingHours)
-            .filter(([, value]) => value !== "closed")
-            .map(([day, hours]) => (
-              <div key={day} className={styles.openingHoursItem}>
-                <div>
-                  <strong>{day.charAt(0).toUpperCase() + day.slice(1)}</strong>
-                  <span>{hours}</span>
-                </div>
-                <button
-                  type="button"
-                  className={styles.removeBtnSmall}
-                  onClick={() =>
-                    setOpeningHours((prev) => ({
-                      ...prev,
-                      [day]: "closed",
-                    }))
-                  }
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
+          <div className={styles.switchItem}>
+            <label className={styles.switch}>
+              <input
+                type="checkbox"
+                name="isFeatured"
+                checked={listing.isFeatured}
+                onChange={handleListingChange}
+              />
+              <span className={styles.slider}></span>
+            </label>
+            <span>Featured</span>
+          </div>
         </div>
       </div>
 
@@ -813,6 +761,65 @@ export default function EditMess() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* ICON / LOGO */}
+      <div className={styles.card}>
+        <h3>Icon / Logo</h3>
+
+        {!existingIcon && !iconPreview ? (
+          <label className={styles.uploadBox}>
+            <p>Click to upload icon/logo</p>
+            <span>PNG, JPG up to 5MB</span>
+
+            <input
+              type="file"
+              accept="image/png, image/jpeg"
+              hidden
+              onChange={handleIconChange}
+            />
+          </label>
+        ) : (
+          <div className={styles.previewGrid}>
+            {existingIcon && !iconPreview && (
+              <div className={styles.previewItem}>
+                <img
+                  src={existingIcon}
+                  alt="icon"
+                  className={styles.previewImage}
+                />
+                <button
+                  type="button"
+                  className={styles.removeBtn}
+                  onClick={() => setExistingIcon(null)}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
+            {iconPreview && (
+              <div className={styles.previewItem}>
+                <img
+                  src={iconPreview}
+                  alt="new icon"
+                  className={styles.previewImage}
+                />
+                <button
+                  type="button"
+                  className={styles.removeBtn}
+                  onClick={() => {
+                    URL.revokeObjectURL(iconPreview);
+                    setIconImage(null);
+                    setIconPreview(null);
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* COVER IMAGE */}

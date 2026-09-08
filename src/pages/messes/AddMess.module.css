@@ -137,13 +137,6 @@
   transform: translateX(20px);
 }
 
-/* Opening Hours */
-.hoursRow {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
 .iconBtn {
   width: 42px;
   height: 42px;
@@ -160,6 +153,37 @@
 .iconBtn:hover {
   background: #e2e8f0;
   border-color: #cbd5e1;
+}
+
+.tabRow {
+  display: flex;
+  gap: 8px;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 10px;
+  width: fit-content;
+}
+
+.tabBtn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.tabBtn:hover {
+  color: #1e293b;
+}
+
+.tabBtnActive {
+  background: white;
+  color: #16a34a;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15);
 }
 
 .addSmallBtn {
@@ -182,32 +206,6 @@
   border: 1px dashed #cbd5e1;
   font-size: 14px;
   color: #64748b;
-}
-
-.openingHoursList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.openingHoursItem {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  max-width: 360px;
-  padding: 14px 16px;
-  border-radius: 12px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-}
-
-.openingHoursItem strong {
-  display: block;
-  margin-bottom: 4px;
-  text-transform: capitalize;
 }
 
 .selectedAdminList {
