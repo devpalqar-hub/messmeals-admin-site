@@ -44,6 +44,29 @@
   transform: translateY(-1px);
 }
 
+.editHeaderBtn {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #1b4332;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.editHeaderBtn:hover {
+  border-color: #16a34a;
+  background: #f0fdf4;
+  transform: translateY(-1px);
+}
+
 .settleBtn {
   background: #16a34a;
 }
@@ -1000,6 +1023,95 @@
   }
 }
 
+/* ========================= */
+/* TABS */
+/* ========================= */
+
+.tabBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  background: #f1f5f9;
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+}
+
+.tabBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: #475569;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: 0.18s ease;
+}
+
+.tabBtn:hover {
+  color: #1b4332;
+}
+
+.tabBtnActive {
+  background: #ffffff;
+  color: #16a34a;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+}
+
+.tabPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: fadeIn 0.15s ease-in-out;
+}
+
+.tabPanel .row {
+  margin-top: 0;
+}
+
+/* ========================= */
+/* TABLE SCROLL WRAPPER */
+/* ========================= */
+
+.tableScroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.contactCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mutedText {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.plainText {
+  display: block !important;
+  padding: 0 !important;
+  border-bottom: none !important;
+}
+
+.galleryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+.galleryGrid .image {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+}
+
 /* Responsive */
 @media (max-width: 1280px) {
   .statsGrid {
@@ -1048,6 +1160,11 @@
 
   .planGrid {
     grid-template-columns: 1fr;
+  }
+
+  .tabBar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
   }
 }
 
