@@ -1,20 +1,46 @@
 import styles from "./MessDetails.module.css";
-import { LuArrowLeft, LuCalendar, LuCreditCard, LuIndianRupee, LuMail, LuMapPin, LuPackage, LuPackageCheck, LuPencil, LuPhone, LuReceipt, LuRefreshCw, LuTruck, LuPlus, LuUsers } from "react-icons/lu";
+import {
+  LuArrowLeft,
+  LuCalendar,
+  LuCreditCard,
+  LuIndianRupee,
+  LuMail,
+  LuMapPin,
+  LuPackage,
+  LuPackageCheck,
+  LuPencil,
+  LuPhone,
+  LuReceipt,
+  LuRefreshCw,
+  LuTruck,
+  LuPlus,
+  LuUsers,
+  LuTrash2,
+  LuLayoutGrid,
+  LuUtensils,
+  LuShieldCheck,
+  LuImage,
+} from "react-icons/lu";
 import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { getMessById, getMessStats, type MessDetailsResponse, type MessStats } from "../../services/mess.api";
+import {
+  getMessById,
+  getMessStats,
+  deleteUserSubscription,
+  updateUserSubscription,
+  deletePlan,
+  type MessDetailsResponse,
+  type MessStats,
+  type UserSubscription,
+} from "../../services/mess.api";
 import CreatePlanModal from "../../components/ui/CreatePlanModal/CreatePlanModal";
 import CreateMenuModal from "../../components/ui/CreateMenuModal/CreateMenuModal";
+import AddCustomerModal from "../../components/ui/AddCustomerModal/AddCustomerModal";
 import { getMenusByMess, deleteMenu as deleteMenuApi, type MenuResponse } from "../../services/menu.api";
 import { getMessBillingInvoice, settleMessBillingInvoice, updateMessBillingConfig } from "../../services/billing.api";
 import type { BillingMessInvoice, BillingMessInvoiceApiResponse } from "../../types/billing.types";
-
-import { deleteUserSubscription } from "../../services/mess.api";
-import { LuTrash2} from "react-icons/lu";
-import { updateUserSubscription } from "../../services/mess.api";
 import ConfirmModal from "../../components/ui/ConfirmModal/ConfirmModal";
-import { deletePlan } from "../../services/mess.api";
 import { useToast } from "../../components/ui/Toast/ToastContainer";
 import type { Plan } from "../../types/plan.types";
 
@@ -136,28 +162,63 @@ const formatMonthLabel = (value: string) => {
   }).format(date);
 };
 
-const getApiErrorMessage = (error: unknown, fallback: string) => {
+const getApiErrorMessage = (error: unknown, fallback: string): string => {
   if (typeof error === "object" && error !== null) {
-    const err = error as {
-      response?: {
-        data?: {
-          message?: string | string[];
-        };
-      };
-      message?: string;
-    };
+    const err = error as any;
 
     const message = err.response?.data?.message;
     if (message) {
-      return Array.isArray(message) ? message.join(", ") : message;
+      if (Array.isArray(message)) {
+        return message.map((m) => (typeof m === "string" ? m : JSON.stringify(m))).join(", ");
+      }
+      if (typeof message === "string") {
+        return message;
+      }
+      if (typeof message === "object" && message !== null) {
+        if (typeof message.message === "string") {
+          return message.message;
+        }
+        return JSON.stringify(message);
+      }
     }
 
-    if (err.message) return err.message;
+    if (err.message && typeof err.message === "string") {
+      return err.message;
+    }
   }
 
   return fallback;
 };
 
+/** Best-effort status label for a subscription — mirrors the logic the customer
+ * detail API applies server-side (ACTIVE | PAUSED | CANCELLED | INACTIVE). */
+const getSubscriptionStatus = (sub: UserSubscription): "ACTIVE" | "PAUSED" | "CANCELLED" | "INACTIVE" => {
+  if (sub.cancelled_on) return "CANCELLED";
+  if (!sub.isActive && !sub.is_active) return "INACTIVE";
+
+  if (sub.pause_start_date && sub.pause_end_date) {
+    const now = new Date();
+    const start = new Date(sub.pause_start_date);
+    const end = new Date(sub.pause_end_date);
+    if (now >= start && now <= end) return "PAUSED";
+  }
+
+  return "ACTIVE";
+};
+
+const subscriptionStatusClass = (status: string) => {
+  switch (status) {
+    case "ACTIVE":
+      return styles.active;
+    case "CANCELLED":
+    case "INACTIVE":
+      return styles.inactive;
+    default:
+      return styles.tagBlue;
+  }
+};
+
+type TabKey = "overview" | "customers" | "plans" | "delivery" | "billing" | "admins";
 
 const MessDetails = () => {
 const navigate = useNavigate();
@@ -165,6 +226,7 @@ const { id } = useParams();
 const { showToast } = useToast();
 const showToastRef = useRef(showToast);
 const [mess, setMess] = useState<MessDetailsResponse | null>(null);
+const [activeTab, setActiveTab] = useState<TabKey>("overview");
 
 const [stats, setStats] = useState<MessStats | null>(null);
 const [invoice, setInvoice] = useState<BillingMessInvoice | null>(null);
@@ -183,14 +245,15 @@ const [extendRate, setExtendRate] = useState("");
 const [extending, setExtending] = useState(false);
 
 const [loading, setLoading] = useState(true);
-const [deleteSub, setDeleteSub] = useState<any>(null);
-const [editingSub, setEditingSub] = useState<any>(null);
+const [deleteSub, setDeleteSub] = useState<UserSubscription | null>(null);
+const [editingSub, setEditingSub] = useState<UserSubscription | null>(null);
 const [editForm, setEditForm] = useState<any>({
   scheduleType: "",
   selectedDays: [],
   start_date: "",
 });
 const [showPlanModal, setShowPlanModal] = useState(false);
+const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
 const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
 const [showEditPlanModal, setShowEditPlanModal] = useState(false);
 
@@ -242,6 +305,15 @@ const getInvoiceStatusClass = (status: string) => {
   }
 };
 
+const TABS: Array<{ key: TabKey; label: string; icon: React.ReactNode }> = [
+  { key: "overview", label: "Overview", icon: <LuLayoutGrid size={16} /> },
+  { key: "customers", label: `Customers (${mess?.UserSubscriptions?.length || 0})`, icon: <LuUsers size={16} /> },
+  { key: "plans", label: `Plans & Menus (${(mess?.plans?.length || 0) + menus.length})`, icon: <LuUtensils size={16} /> },
+  { key: "delivery", label: `Delivery Partners (${mess?.DeliveryPartnerProfile?.length || 0})`, icon: <LuTruck size={16} /> },
+  { key: "billing", label: "Billing", icon: <LuReceipt size={16} /> },
+  { key: "admins", label: `Admins (${mess?.messAdmins?.length || 0})`, icon: <LuShieldCheck size={16} /> },
+];
+
 
 useEffect(() => {
   if (!id) return;
@@ -257,7 +329,6 @@ useEffect(() => {
 
       const statsRes = await getMessStats(id, today);
       setStats(statsRes.data);
-      console.log("Fetched stats:", statsRes.data);
 
     } catch (err) {
       console.error("Failed to load mess details or stats", err);
@@ -297,7 +368,7 @@ const handleMenuSaved = async () => {
 };
 
 useEffect(() => {
-  if (!id) return;
+  if (!id || activeTab !== "billing") return;
 
   const fetchInvoice = async () => {
     try {
@@ -317,18 +388,26 @@ useEffect(() => {
   };
 
   fetchInvoice();
-}, [id, invoiceUsageMonth, invoiceReloadKey]);
+}, [id, invoiceUsageMonth, invoiceReloadKey, activeTab]);
 
-const handlePlanCreated = async () => {
-  // Refetch mess details to get the new plan
+const refetchMess = async () => {
   if (!id) return;
   try {
     const messRes = await getMessById(id);
     setMess(messRes.data);
-    showToast("Plan added successfully", "success");
   } catch (error) {
     console.error("Failed to refetch mess details", error);
   }
+};
+
+const handlePlanCreated = async () => {
+  await refetchMess();
+  showToast("Plan added successfully", "success");
+};
+
+const handleCustomerAdded = async () => {
+  setShowAddCustomerModal(false);
+  await refetchMess();
 };
 
 const openSettleModal = () => {
@@ -431,18 +510,10 @@ if (!mess) return <p>Mess not found</p>;
         <div className={styles.headerActions}>
           <button
             type="button"
-            className={`${styles.headerActionBtn} ${styles.settleBtn}`}
-            onClick={openSettleModal}
+            className={styles.editHeaderBtn}
+            onClick={() => navigate(`/messes/edit/${id}`)}
           >
-            <LuReceipt size={17} /> Settle
-          </button>
-
-          <button
-            type="button"
-            className={`${styles.headerActionBtn} ${styles.extendBtn}`}
-            onClick={openExtendModal}
-          >
-            <LuCalendar size={17} /> Extend
+            <LuPencil size={16} /> Edit Mess
           </button>
         </div>
       </div>
@@ -506,473 +577,556 @@ if (!mess) return <p>Mess not found</p>;
         />
       </div>
 
-      {/* BILLING INVOICE */}
-      <section className={`${styles.card} ${styles.invoiceSection}`}>
-        <div className={styles.invoiceHeader}>
-          <div className={styles.invoiceTitle}>
-            <div className={styles.invoiceIcon}>
-              <LuReceipt size={22} />
-            </div>
-            <div>
-              <h3>Billing Invoice</h3>
-              <span>{formatMonthLabel(invoiceUsageMonth)}</span>
-            </div>
-          </div>
-
-          <div className={styles.invoiceFilters}>
-            <label className={styles.monthFilter}>
-              <span>Year</span>
-              <select
-                value={invoiceYear}
-                onChange={(event) => setInvoiceYear(Number(event.target.value))}
-              >
-                {yearOptions.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className={styles.monthFilter}>
-              <span>Month</span>
-              <select
-                value={invoiceMonth}
-                onChange={(event) => setInvoiceMonth(event.target.value)}
-              >
-                {MONTH_OPTIONS.map((month) => (
-                  <option key={month.value} value={month.value}>
-                    {month.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        </div>
-
-        {invoiceLoading ? (
-          <div className={styles.invoiceState}>
-            <div className={styles.invoiceSpinner} />
-            <span>Loading invoice...</span>
-          </div>
-        ) : invoiceError ? (
-          <div className={styles.invoiceState}>
-            <span>{invoiceError}</span>
-            <button
-              type="button"
-              onClick={() => setInvoiceReloadKey((key) => key + 1)}
-            >
-              <LuRefreshCw size={16} /> Retry
-            </button>
-          </div>
-        ) : invoice ? (
-          <>
-            <div className={styles.invoiceSummaryGrid}>
-              <div className={styles.invoiceMetric}>
-                <span>Amount</span>
-                <strong>{formatCurrency(invoice.amount)}</strong>
-              </div>
-
-              <div className={styles.invoiceMetric}>
-                <span>Customer Count</span>
-                <strong>{invoice.customerCount.toLocaleString("en-IN")}</strong>
-              </div>
-
-              <div className={styles.invoiceMetric}>
-                <span>Rate</span>
-                <strong>{formatCurrency(invoice.rate)}</strong>
-              </div>
-
-              <div className={styles.invoiceMetric}>
-                <span>Status</span>
-                <strong
-                  className={`${styles.invoiceStatus} ${getInvoiceStatusClass(
-                    invoice.status
-                  )}`}
-                >
-                  {invoice.status}
-                </strong>
-              </div>
-            </div>
-
-            <div className={styles.invoiceMetaGrid}>
-              <div>
-                <span><LuCalendar size={16} /> Billing Period</span>
-                <strong>
-                  {formatDate(invoice.periodStart)} - {formatDate(invoice.periodEnd)}
-                </strong>
-              </div>
-
-              <div>
-                <span><LuCreditCard size={16} /> Due Date</span>
-                <strong>{formatDate(invoice.dueDate)}</strong>
-              </div>
-
-              <div>
-                <span><LuCreditCard size={16} /> Paid At</span>
-                <strong>{formatDate(invoice.paidAt)}</strong>
-              </div>
-
-              <div>
-                <span><LuUsers size={16} /> Invoice ID</span>
-                <strong>{invoice.id}</strong>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className={styles.invoiceState}>
-            <span>No invoice found for {formatMonthLabel(invoiceUsageMonth)}.</span>
-          </div>
-        )}
-      </section>
-
-      {/* INFO GRID */}
-      <div className={styles.row}>
-        <div className={styles.card}>
-          <h3>Basic Information</h3>
-          <div className={styles.infoRow}><h5><LuPhone /> Phone</h5> <p>{mess.phone}</p></div>
-          <div className={styles.infoRow}><h5><LuMail /> Email</h5> <p>{mess.email}</p></div>
-          <div className={styles.infoRow}><h5><LuMapPin /> Address</h5> <p>{mess.address}</p></div>
-          <div className={styles.infoRow}><h5><LuMapPin /> Location</h5> <p>{mess.location}</p></div>
-          <div className={styles.infoRow}><h5><LuCalendar /> Created</h5> <p>{new Date(mess.createdAt).toDateString()}</p></div>
-        </div>
-
-        <div className={styles.card}>
-          <h3>Description</h3>
-          <p>{mess.description || "No description provided."}</p>
-        </div>
-      </div>
-
-        <div className={styles.card}>
-  <div className={styles.cardHeader}>
-    <h3>Meal Plans ({mess.plans?.length || 0})</h3>
-    <button
-      type="button"
-      className={styles.addPlanBtn}
-      onClick={() => setShowPlanModal(true)}
-    >
-      <LuPlus size={18} /> Add Plan
-    </button>
-  </div>
-
-  {mess.plans && mess.plans.length > 0 ? (
-    <div className={styles.planGrid}>
-      {mess.plans.map((plan: any) => (
-        <div key={plan.id} className={styles.planCard}>
-
-          {/* Header */}
-          <div className={styles.planHeader}>
-            <h4>{plan.planName}</h4>
-
-            <div className={styles.planHeaderRight}>
-            <div className={styles.priceBox}>
-              ₹{Number(plan.price).toLocaleString("en-IN")}
-            </div>
-
-            <button
-              className={styles.editPlanBtn}
-              onClick={() => {
-                setEditingPlan(plan);
-                setShowEditPlanModal(true);
-              }}
-            >
-              <LuPencil size={16} />
-            </button>
-
-            <button
-              className={styles.deletePlanBtn}
-              onClick={() => setDeletePlanId(plan.id)}
-            >
-              <LuTrash2 size={16} />
-            </button>
-          </div>
-          </div>
-
-          {/* Min price */}
-          {plan.minPrice && (
-            <p className={styles.minPrice}>
-              Min: ₹{Number(plan.minPrice).toLocaleString("en-IN")}
-            </p>
-          )}
-
-          {/* Description */}
-          {plan.description && (
-            <p className={styles.planDescription}>
-              {plan.description}
-            </p>
-          )}
-
-          {/* Plan Type */}
-          <div className={styles.planTags}>
-            {plan.isMonthlyPlan && (
-              <span className={styles.tagGreen}>Monthly</span>
-            )}
-            {plan.isDailyPlan && (
-              <span className={styles.tagBlue}>Daily</span>
-            )}
-          </div>
-
-          {/* Variations */}
-          {plan.Variation?.length > 0 && (
-            <div className={styles.variationChips}>
-              {plan.Variation.map((v: any) => (
-                <span key={v.id} className={styles.chip}>
-                  {v.title}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Connected Menus */}
-          {plan.menus?.length > 0 && (
-            <div className={styles.variationChips}>
-              {plan.menus.map((m: any) => (
-                <span key={m.id} className={styles.tagBlue}>
-                  {m.name}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Images */}
-          {plan.images?.length > 0 && (
-            <div className={styles.planImageGrid}>
-              {plan.images.map((img: any) => (
-                <img
-                  key={img.id}
-                  src={img.url}
-                  alt="plan"
-                  className={styles.planImage}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
-  ) : (
-    <p className={styles.empty}>No plans configured yet.</p>
-  )}
-</div>
-
-      {/* MENUS */}
-      <div className={styles.card}>
-        <div className={styles.cardHeader}>
-          <h3>Menus ({menus.length})</h3>
+      {/* TABS */}
+      <div className={styles.tabBar}>
+        {TABS.map((tab) => (
           <button
+            key={tab.key}
             type="button"
-            className={styles.addPlanBtn}
-            onClick={() => setShowMenuModal(true)}
+            className={`${styles.tabBtn} ${activeTab === tab.key ? styles.tabBtnActive : ""}`}
+            onClick={() => setActiveTab(tab.key)}
           >
-            <LuPlus size={18} /> Add Menu
+            {tab.icon}
+            {tab.label}
           </button>
-        </div>
-
-        {menusLoading ? (
-          <p className={styles.empty}>Loading menus...</p>
-        ) : menus.length > 0 ? (
-          <div className={styles.planGrid}>
-            {menus.map((menu) => {
-              const dayCount = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-                .filter((d) => ((menu as any)[d]?.length ?? 0) > 0).length;
-
-              return (
-                <div key={menu.id} className={styles.planCard}>
-                  <div className={styles.planHeader}>
-                    <h4>{menu.name}</h4>
-                    <div className={styles.planHeaderRight}>
-                      <button
-                        className={styles.editPlanBtn}
-                        onClick={() => {
-                          setEditingMenu(menu);
-                          setShowEditMenuModal(true);
-                        }}
-                      >
-                        <LuPencil size={16} />
-                      </button>
-                      <button
-                        className={styles.deletePlanBtn}
-                        onClick={() => setDeleteMenuId(menu.id)}
-                      >
-                        <LuTrash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                  <p className={styles.planDescription}>
-                    Scheduled for {dayCount} day{dayCount === 1 ? "" : "s"} of the week
-                  </p>
-                  {!menu.isActive && <span className={styles.tagBlue}>Inactive</span>}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <p className={styles.empty}>No menus configured yet.</p>
-        )}
+        ))}
       </div>
 
-      {/* MESS ADMINS */}
-        <div className={styles.card}>
-          <h3>Mess Admins ({mess?.messAdmins?.length || 0})</h3>
+      {/* ============ OVERVIEW TAB ============ */}
+      {activeTab === "overview" && (
+        <div className={styles.tabPanel}>
+          <div className={styles.row}>
+            <div className={styles.card}>
+              <h3>Basic Information</h3>
+              <div className={styles.infoRow}><h5><LuPhone /> Phone</h5> <p>{mess.phone}</p></div>
+              <div className={styles.infoRow}><h5><LuMail /> Email</h5> <p>{mess.email}</p></div>
+              <div className={styles.infoRow}><h5><LuMapPin /> Address</h5> <p>{mess.address}</p></div>
+              <div className={styles.infoRow}><h5><LuMapPin /> Location</h5> <p>{mess.location}</p></div>
+              <div className={styles.infoRow}><h5><LuCalendar /> Created</h5> <p>{new Date(mess.createdAt).toDateString()}</p></div>
+            </div>
 
-          {mess?.messAdmins && mess.messAdmins.length > 0 ? (
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Admin</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Status</th>
-                  <th>Added On</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mess.messAdmins.map((admin) => (
-                  <tr key={admin.id}>
-                    <td>{admin.user?.name || "-"}</td>
-                    <td>{admin.user?.email || "-"}</td>
-                    <td>{admin.user?.phone || "-"}</td>
+            <div className={styles.card}>
+              <h3>Description</h3>
+              <p className={styles.plainText}>{mess.description || "No description provided."}</p>
+            </div>
+          </div>
 
-                    {/* Status (hardcoded because backend doesn't send it) */}
-                    <td>
-                      <span className={styles.active}>Active</span>
-                    </td>
-
-                    <td>
-                      {new Date(admin.createdAt).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </td>
-                  </tr>
+          {/* GALLERY */}
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h3><LuImage size={18} style={{ verticalAlign: "-3px", marginRight: 6 }} />Gallery ({mess.images?.length || 0})</h3>
+            </div>
+            {!mess.images || mess.images.length === 0 ? (
+              <p className={styles.empty}>No images uploaded.</p>
+            ) : (
+              <div className={styles.galleryGrid}>
+                {mess.images.map((img) => (
+                  <img key={img.id} src={img.url} className={styles.image} alt="mess" />
                 ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className={styles.emptyState}>
-              No admins assigned yet.
-            </div>
-          )}
+              </div>
+            )}
+          </div>
         </div>
+      )}
 
-
-      <div className={styles.row}>
-
-            {/* ACTIVE SUBSCRIPTIONS */}
-            <div className={styles.card}>
-              <h3>Active Subscriptions ({mess?.UserSubscriptions?.length || 0})</h3>
-
-              {mess?.UserSubscriptions?.length ? (
-                <ul className={styles.list}>
-                  {mess.UserSubscriptions
-                    .filter((sub: any) => sub.isActive)
-                    .map((sub: any) => (
-                      <li key={sub.id} className={styles.subscriptionItem}>
-                        <div>
-                          <strong>Schedule:</strong> {sub.scheduleType}
-                        </div>
-
-                        <div>
-                          <strong>Days:</strong>{" "}
-                          {sub.selectedDays?.join(", ") || "-"}
-                        </div>
-
-                        <div>
-                          <strong>Start:</strong>{" "}
-                          {new Date(sub.start_date).toLocaleDateString("en-IN")}
-                        </div>
-
-                        <div className={styles.actions}>
-                            <button
-                              className={styles.iconBtn}
-                              onClick={() => {
-                                setEditingSub(sub);
-                                setEditForm({
-                                  scheduleType: sub.scheduleType,
-                                  selectedDays: sub.selectedDays || [],
-                                  start_date: sub.start_date.split("T")[0],
-                                });
-                              }}
-                            >
-                              <LuPencil size={18} />
-                            </button>
-
-                            <button
-                              className={`${styles.iconBtn} ${styles.deleteBtn}`}
-                              onClick={() => {
-                                setDeleteSub(sub); // open modal
-                              }}
-                            >
-                              <LuTrash2 size={18} />
-                            </button>
-
-                          </div>
-                      </li>
-                    ))}
-                </ul>
-              ) : (
-                <p className={styles.empty}>No active subscriptions.</p>
-              )}
+      {/* ============ CUSTOMERS TAB ============ */}
+      {activeTab === "customers" && (
+        <div className={styles.tabPanel}>
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h3>Customers ({mess?.UserSubscriptions?.length || 0})</h3>
+              <button
+                type="button"
+                className={styles.addPlanBtn}
+                onClick={() => setShowAddCustomerModal(true)}
+              >
+                <LuPlus size={18} /> Add Customer
+              </button>
             </div>
-            {/* DELIVERY PARTNERS */}
-            <div className={styles.card}>
-              <div className={styles.cardHeader}>
-                <h3>Delivery Partners ({mess?.DeliveryPartnerProfile?.length || 0})</h3>
+
+            {mess?.UserSubscriptions?.length ? (
+              <div className={styles.tableScroll}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Customer</th>
+                      <th>Contact</th>
+                      <th>Plan</th>
+                      <th>Schedule</th>
+                      <th>Start Date</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mess.UserSubscriptions.map((sub) => {
+                      const status = getSubscriptionStatus(sub);
+                      const customer = sub.CustomerProfile?.user;
+                      return (
+                        <tr key={sub.id}>
+                          <td>
+                            <strong>{customer?.name || "-"}</strong>
+                          </td>
+                          <td>
+                            <div className={styles.contactCell}>
+                              <span>{customer?.phone || "-"}</span>
+                              {customer?.email && <span className={styles.mutedText}>{customer.email}</span>}
+                            </div>
+                          </td>
+                          <td>{sub.plan?.planName || "-"}</td>
+                          <td>
+                            <div className={styles.contactCell}>
+                              <span>{sub.scheduleType}</span>
+                              {sub.selectedDays && sub.selectedDays.length > 0 && (
+                                <span className={styles.mutedText}>{sub.selectedDays.join(", ")}</span>
+                              )}
+                            </div>
+                          </td>
+                          <td>{formatDate(sub.start_date)}</td>
+                          <td>
+                            <span className={subscriptionStatusClass(status)}>{status}</span>
+                          </td>
+                          <td>
+                            <div className={styles.actions}>
+                              <button
+                                className={styles.iconBtn}
+                                title="Edit subscription"
+                                onClick={() => {
+                                  setEditingSub(sub);
+                                  setEditForm({
+                                    scheduleType: sub.scheduleType,
+                                    selectedDays: sub.selectedDays || [],
+                                    start_date: sub.start_date.split("T")[0],
+                                  });
+                                }}
+                              >
+                                <LuPencil size={16} />
+                              </button>
+
+                              <button
+                                className={`${styles.iconBtn} ${styles.deleteBtn}`}
+                                title="Delete subscription"
+                                onClick={() => setDeleteSub(sub)}
+                              >
+                                <LuTrash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className={styles.empty}>No customers subscribed to this mess yet.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============ PLANS & MENUS TAB ============ */}
+      {activeTab === "plans" && (
+        <div className={styles.tabPanel}>
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h3>Meal Plans ({mess.plans?.length || 0})</h3>
+              <button
+                type="button"
+                className={styles.addPlanBtn}
+                onClick={() => setShowPlanModal(true)}
+              >
+                <LuPlus size={18} /> Add Plan
+              </button>
+            </div>
+
+            {mess.plans && mess.plans.length > 0 ? (
+              <div className={styles.planGrid}>
+                {mess.plans.map((plan: any) => (
+                  <div key={plan.id} className={styles.planCard}>
+                    <div className={styles.planHeader}>
+                      <h4>{plan.planName}</h4>
+
+                      <div className={styles.planHeaderRight}>
+                        <div className={styles.priceBox}>
+                          ₹{Number(plan.price).toLocaleString("en-IN")}
+                        </div>
+
+                        <button
+                          className={styles.editPlanBtn}
+                          onClick={() => {
+                            setEditingPlan(plan);
+                            setShowEditPlanModal(true);
+                          }}
+                        >
+                          <LuPencil size={16} />
+                        </button>
+
+                        <button
+                          className={styles.deletePlanBtn}
+                          onClick={() => setDeletePlanId(plan.id)}
+                        >
+                          <LuTrash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {plan.minPrice && (
+                      <p className={styles.minPrice}>
+                        Min: ₹{Number(plan.minPrice).toLocaleString("en-IN")}
+                      </p>
+                    )}
+
+                    {plan.description && (
+                      <p className={styles.planDescription}>
+                        {plan.description}
+                      </p>
+                    )}
+
+                    <div className={styles.planTags}>
+                      {plan.isMonthlyPlan && (
+                        <span className={styles.tagGreen}>Monthly</span>
+                      )}
+                      {plan.isDailyPlan && (
+                        <span className={styles.tagBlue}>Daily</span>
+                      )}
+                    </div>
+
+                    {plan.Variation?.length > 0 && (
+                      <div className={styles.variationChips}>
+                        {plan.Variation.map((v: any) => (
+                          <span key={v.id} className={styles.chip}>
+                            {v.title}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {plan.menus?.length > 0 && (
+                      <div className={styles.variationChips}>
+                        {plan.menus.map((m: any) => (
+                          <span key={m.id} className={styles.tagBlue}>
+                            {m.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {plan.images?.length > 0 && (
+                      <div className={styles.planImageGrid}>
+                        {plan.images.map((img: any) => (
+                          <img
+                            key={img.id}
+                            src={img.url}
+                            alt="plan"
+                            className={styles.planImage}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className={styles.empty}>No plans configured yet.</p>
+            )}
+          </div>
+
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h3>Menus ({menus.length})</h3>
+              <button
+                type="button"
+                className={styles.addPlanBtn}
+                onClick={() => setShowMenuModal(true)}
+              >
+                <LuPlus size={18} /> Add Menu
+              </button>
+            </div>
+
+            {menusLoading ? (
+              <p className={styles.empty}>Loading menus...</p>
+            ) : menus.length > 0 ? (
+              <div className={styles.planGrid}>
+                {menus.map((menu) => {
+                  const dayCount = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+                    .filter((d) => ((menu as any)[d]?.length ?? 0) > 0).length;
+
+                  return (
+                    <div key={menu.id} className={styles.planCard}>
+                      <div className={styles.planHeader}>
+                        <h4>{menu.name}</h4>
+                        <div className={styles.planHeaderRight}>
+                          <button
+                            className={styles.editPlanBtn}
+                            onClick={() => {
+                              setEditingMenu(menu);
+                              setShowEditMenuModal(true);
+                            }}
+                          >
+                            <LuPencil size={16} />
+                          </button>
+                          <button
+                            className={styles.deletePlanBtn}
+                            onClick={() => setDeleteMenuId(menu.id)}
+                          >
+                            <LuTrash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                      <p className={styles.planDescription}>
+                        Scheduled for {dayCount} day{dayCount === 1 ? "" : "s"} of the week
+                      </p>
+                      {!menu.isActive && <span className={styles.tagBlue}>Inactive</span>}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className={styles.empty}>No menus configured yet.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============ DELIVERY PARTNERS TAB ============ */}
+      {activeTab === "delivery" && (
+        <div className={styles.tabPanel}>
+          <div className={styles.card}>
+            <div className={styles.cardHeader}>
+              <h3>Delivery Partners ({mess?.DeliveryPartnerProfile?.length || 0})</h3>
+              <button
+                type="button"
+                className={styles.addPlanBtn}
+                onClick={() => navigate(`/delivery-agents/add?messId=${id}`)}
+              >
+                <LuPlus size={18} /> Add Delivery Partner
+              </button>
+            </div>
+            {mess?.DeliveryPartnerProfile?.length ? (
+              <div className={styles.tableScroll}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Phone</th>
+                      <th>Address</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mess.DeliveryPartnerProfile.map((partner: any) => (
+                      <tr key={partner.id}>
+                        <td>{partner.user?.name || "-"}</td>
+                        <td>{partner.user?.phone || "-"}</td>
+                        <td>{partner.address || "-"}</td>
+                        <td>
+                          <span className={partner.isonline ? styles.active : styles.inactive}>
+                            {partner.isonline ? "Online" : "Offline"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className={styles.empty}>No delivery partners assigned.</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============ BILLING TAB ============ */}
+      {activeTab === "billing" && (
+        <div className={styles.tabPanel}>
+          <section className={`${styles.card} ${styles.invoiceSection}`}>
+            <div className={styles.invoiceHeader}>
+              <div className={styles.invoiceTitle}>
+                <div className={styles.invoiceIcon}>
+                  <LuReceipt size={22} />
+                </div>
+                <div>
+                  <h3>Billing Invoice</h3>
+                  <span>{formatMonthLabel(invoiceUsageMonth)}</span>
+                </div>
+              </div>
+
+              <div className={styles.invoiceFilters}>
+                <label className={styles.monthFilter}>
+                  <span>Year</span>
+                  <select
+                    value={invoiceYear}
+                    onChange={(event) => setInvoiceYear(Number(event.target.value))}
+                  >
+                    {yearOptions.map((year) => (
+                      <option key={year} value={year}>
+                        {year}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className={styles.monthFilter}>
+                  <span>Month</span>
+                  <select
+                    value={invoiceMonth}
+                    onChange={(event) => setInvoiceMonth(event.target.value)}
+                  >
+                    {MONTH_OPTIONS.map((month) => (
+                      <option key={month.value} value={month.value}>
+                        {month.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
                 <button
                   type="button"
-                  className={styles.addPlanBtn}
-                  onClick={() => navigate(`/delivery-agents/add?messId=${id}`)}
+                  className={`${styles.headerActionBtn} ${styles.settleBtn}`}
+                  onClick={openSettleModal}
                 >
-                  <LuPlus size={18} /> Add Delivery Partner
+                  <LuReceipt size={17} /> Settle
+                </button>
+
+                <button
+                  type="button"
+                  className={`${styles.headerActionBtn} ${styles.extendBtn}`}
+                  onClick={openExtendModal}
+                >
+                  <LuCalendar size={17} /> Extend
                 </button>
               </div>
-              {mess?.DeliveryPartnerProfile?.length ? (
-                <ul className={styles.list}>
-                  {mess.DeliveryPartnerProfile.map((partner: any) => (
-                    <li key={partner.id}>
-                      <div>
-                        <strong>Status:</strong>{" "}
-                        <span
-                          className={
-                            partner.isonline
-                              ? styles.active
-                              : styles.inactive
-                          }
-                        >
-                          {partner.isonline ? "Online" : "Offline"}
-                        </span>
-                      </div>
-
-                      <div>
-                        <strong>Address:</strong> {partner.address || "-"}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className={styles.empty}>
-                  No delivery partners assigned.
-                </p>
-              )}
             </div>
-          </div>
 
-            {/* GALLERY */}
-      <div className={styles.card}>
-        <h3>Gallery (1)</h3>
-        {mess.images.length === 0 ? (
-          <p>No images uploaded.</p>
-        ) : (
-          mess.images.map(img => (
-            <img
-              key={img.id}
-              src={img.url}
-              className={styles.image}
-            />
-          ))
-        )}
-      </div>
+            {invoiceLoading ? (
+              <div className={styles.invoiceState}>
+                <div className={styles.invoiceSpinner} />
+                <span>Loading invoice...</span>
+              </div>
+            ) : invoiceError ? (
+              <div className={styles.invoiceState}>
+                <span>{invoiceError}</span>
+                <button
+                  type="button"
+                  onClick={() => setInvoiceReloadKey((key) => key + 1)}
+                >
+                  <LuRefreshCw size={16} /> Retry
+                </button>
+              </div>
+            ) : invoice ? (
+              <>
+                <div className={styles.invoiceSummaryGrid}>
+                  <div className={styles.invoiceMetric}>
+                    <span>Amount</span>
+                    <strong>{formatCurrency(invoice.amount)}</strong>
+                  </div>
+
+                  <div className={styles.invoiceMetric}>
+                    <span>Customer Count</span>
+                    <strong>{invoice.customerCount.toLocaleString("en-IN")}</strong>
+                  </div>
+
+                  <div className={styles.invoiceMetric}>
+                    <span>Rate</span>
+                    <strong>{formatCurrency(invoice.rate)}</strong>
+                  </div>
+
+                  <div className={styles.invoiceMetric}>
+                    <span>Status</span>
+                    <strong
+                      className={`${styles.invoiceStatus} ${getInvoiceStatusClass(
+                        invoice.status
+                      )}`}
+                    >
+                      {invoice.status}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className={styles.invoiceMetaGrid}>
+                  <div>
+                    <span><LuCalendar size={16} /> Billing Period</span>
+                    <strong>
+                      {formatDate(invoice.periodStart)} - {formatDate(invoice.periodEnd)}
+                    </strong>
+                  </div>
+
+                  <div>
+                    <span><LuCreditCard size={16} /> Due Date</span>
+                    <strong>{formatDate(invoice.dueDate)}</strong>
+                  </div>
+
+                  <div>
+                    <span><LuCreditCard size={16} /> Paid At</span>
+                    <strong>{formatDate(invoice.paidAt)}</strong>
+                  </div>
+
+                  <div>
+                    <span><LuUsers size={16} /> Invoice ID</span>
+                    <strong>{invoice.id}</strong>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className={styles.invoiceState}>
+                <span>No invoice found for {formatMonthLabel(invoiceUsageMonth)}.</span>
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+
+      {/* ============ ADMINS TAB ============ */}
+      {activeTab === "admins" && (
+        <div className={styles.tabPanel}>
+          <div className={styles.card}>
+            <h3>Mess Admins ({mess?.messAdmins?.length || 0})</h3>
+
+            {mess?.messAdmins && mess.messAdmins.length > 0 ? (
+              <div className={styles.tableScroll}>
+                <table className={styles.table}>
+                  <thead>
+                    <tr>
+                      <th>Admin</th>
+                      <th>Email</th>
+                      <th>Phone</th>
+                      <th>Status</th>
+                      <th>Added On</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mess.messAdmins.map((admin) => (
+                      <tr key={admin.id}>
+                        <td>{admin.user?.name || "-"}</td>
+                        <td>{admin.user?.email || "-"}</td>
+                        <td>{admin.user?.phone || "-"}</td>
+
+                        {/* Status (hardcoded because backend doesn't send it) */}
+                        <td>
+                          <span className={styles.active}>Active</span>
+                        </td>
+
+                        <td>
+                          {new Date(admin.createdAt).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className={styles.emptyState}>
+                No admins assigned yet.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 🔥 PASTE MODAL RIGHT HERE */}
       {showSettleModal && (
@@ -1175,7 +1329,7 @@ if (!mess) return <p>Mess not found</p>;
 
                         return {
                           ...prev,
-                          UserSubscriptions: prev.UserSubscriptions.map((s: any) =>
+                          UserSubscriptions: prev.UserSubscriptions.map((s) =>
                             s.id === editingSub.id
                               ? { ...s, ...editForm }
                               : s
@@ -1215,7 +1369,7 @@ if (!mess) return <p>Mess not found</p>;
             setMess((prev) => ({
               ...prev!,
               UserSubscriptions: prev!.UserSubscriptions.filter(
-                (s: any) => s.id !== deleteSub.id
+                (s) => s.id !== deleteSub.id
               ),
             }));
 
@@ -1256,6 +1410,14 @@ if (!mess) return <p>Mess not found</p>;
             }
           }}
         />
+
+      {/* ADD CUSTOMER MODAL */}
+      <AddCustomerModal
+        isOpen={showAddCustomerModal}
+        onClose={() => setShowAddCustomerModal(false)}
+        onSuccess={handleCustomerAdded}
+        plans={mess?.plans || []}
+      />
 
       {/* CREATE PLAN MODAL */}
       <CreatePlanModal
@@ -1314,7 +1476,7 @@ if (!mess) return <p>Mess not found</p>;
       />
 
     </div>
-    
+
   );
 };
 

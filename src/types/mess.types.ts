@@ -12,7 +12,8 @@ export interface CreateMessPayload {
   is_verified: boolean;
   isPremium: boolean;
   location: string;
-  districtId: string;
+  latitude?: string;
+  longitude?: string;
   messAdminIds: string[];
   foodTypes: string[];
   tags: string[];
@@ -30,7 +31,6 @@ export interface UpdateMessPayload {
   is_verified: boolean;
   isPremium: boolean;
   location: string;
-  districtId: string;
   foodTypes: string[];
   tags: string[];
   features?: string[];

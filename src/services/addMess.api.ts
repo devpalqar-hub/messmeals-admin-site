@@ -16,7 +16,8 @@ export const createMess = async (data: {
   is_verified: boolean;
   isPremium: boolean;
   location: string;
-  districtId: string;
+  latitude?: string;
+  longitude?: string;
   messAdminIds: string[];
   foodTypes: string[];
   tags: string[];
@@ -44,7 +45,8 @@ export const createMess = async (data: {
     is_verified: data.is_verified,
     isPremium: data.isPremium,
     location: data.location,
-    districtId: data.districtId,
+    latitude: data.latitude || undefined,
+    longitude: data.longitude || undefined,
     messAdminIds: data.messAdminIds,
     foodTypes: data.foodTypes,
     tags: data.tags,

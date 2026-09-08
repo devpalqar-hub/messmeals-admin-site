@@ -4,8 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import type { ChangeEvent } from "react";
 import { createMess, uploadCoverImage } from "../../services/addMess.api";
-import { getMessOwners } from "../../services/messOwners.api";
-import api from "../../services/axios";
+import { getMessOwners, createMessWithOwner } from "../../services/messOwners.api";
+import { uploadFile } from "../../services/upload.service";
 import { useToast } from "../../components/ui/Toast/ToastContainer";
 
 interface MessOwner {
@@ -37,7 +37,8 @@ export default function AddMess() {
     phone: "",
     email: "",
     location: "",
-    districtId: "",
+    latitude: "",
+    longitude: "",
     is_active: true,
     is_verified: false,
     isPremium: false,
@@ -51,6 +52,21 @@ export default function AddMess() {
   const [selectedAdmins, setSelectedAdmins] = useState<MessOwner[]>([]);
   const [owners, setOwners] = useState<MessOwner[]>([]);
   const [showAdminModal, setShowAdminModal] = useState(false);
+
+  // Mess owner: either pick an existing owner, or create a brand-new owner
+  // account directly (superadmin one-call flow: POST /auth/superadmin/mess).
+  const [ownerMode, setOwnerMode] = useState<"existing" | "new">("existing");
+  const [newOwner, setNewOwner] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+  });
+
+  const handleNewOwnerChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewOwner((prev) => ({ ...prev, [name]: value }));
+  };
   const [ownerPage, setOwnerPage] = useState(1);
   const [ownerLimit] = useState(5);
   const [ownerTotalPages, setOwnerTotalPages] = useState(1);
@@ -78,12 +94,6 @@ export default function AddMess() {
     "NO_HIDDEN_CHARGES",
     "TRUSTED_MESS",
   ] as const;
-
-
-  interface District {
-    id: string;
-    name: string;
-  }
 
 
   // 🔥 PLAN STATE - REMOVED
@@ -127,29 +137,6 @@ export default function AddMess() {
   //   );
   // };
 
-  const [districts, setDistricts] = useState<District[]>([]);
-  const [loadingDistricts, setLoadingDistricts] = useState(false);
-
-  useEffect(() => {
-    const fetchDistricts = async () => {
-      try {
-        setLoadingDistricts(true);
-
-        const res = await api.get("/districts");
-        console.log("DISTRICT RESPONSE:", res.data);
-        if (res.data?.data) {
-          setDistricts(res.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch districts", error);
-      } finally {
-        setLoadingDistricts(false);
-      }
-    };
-
-    fetchDistricts();
-  }, []);
-
   useEffect(() => {
     if (!showAdminModal) return;
 
@@ -169,9 +156,6 @@ export default function AddMess() {
     fetchOwners();
   }, [showAdminModal, ownerPage, ownerLimit]);
 
-  useEffect(() => {
-    console.log("DISTRICTS STATE:", districts);
-  }, [districts]);
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
 
@@ -215,45 +199,82 @@ export default function AddMess() {
     setSelectedAdmins((prev) => [...prev, owner]);
   };
 
-  const getErrorMessage = (error: unknown) => {
+  const getErrorMessage = (error: unknown): string => {
     if (typeof error === "object" && error !== null) {
-      const err = error as {
-        response?: {
-          data?: {
-            message?: string | string[];
-          };
-        };
-      };
-
+      const err = error as any;
       const message = err.response?.data?.message;
       if (message) {
-        return Array.isArray(message) ? message.join(", ") : message;
+        if (Array.isArray(message)) return message.map((m) => (typeof m === "string" ? m : JSON.stringify(m))).join(", ");
+        if (typeof message === "string") return message;
+        if (typeof message === "object" && message !== null) {
+          if (typeof message.message === "string") return message.message;
+          return JSON.stringify(message);
+        }
       }
+      if (err.message && typeof err.message === "string") return err.message;
     }
-
     return "Something went wrong";
   };
 
   const handleSubmit = async () => {
+    if (ownerMode === "new") {
+      if (!newOwner.name || !newOwner.email || !newOwner.phone || !newOwner.password) {
+        showToast("Please fill in all new owner fields (name, email, phone, password)", "error");
+        return;
+      }
+      if (newOwner.password.length < 6) {
+        showToast("Owner password must be at least 6 characters", "error");
+        return;
+      }
+    }
+
     try {
       setLoading(true);
 
-      const res = await createMess({
-        ...form,
-        messAdminIds,
-        foodTypes,
-        tags,
-        files,
-      });
+      let messId: string | undefined;
 
-      const messId = res.data?.data?.id;
+      if (ownerMode === "new") {
+        // Upload gallery images to S3 first, same as the plain create-mess flow.
+        let imageUrls: Array<{ url: string }> = [];
+        if (files.length > 0) {
+          const uploaded = await Promise.all(files.map((file) => uploadFile(file)));
+          imageUrls = uploaded.map((url) => ({ url }));
+        }
+
+        const res = await createMessWithOwner({
+          owner: newOwner,
+          mess: {
+            ...form,
+            foodTypes,
+            tags,
+          },
+          images: imageUrls.length > 0 ? imageUrls : undefined,
+        });
+
+        messId = res.data?.mess?.id;
+      } else {
+        const res = await createMess({
+          ...form,
+          messAdminIds,
+          foodTypes,
+          tags,
+          files,
+        });
+
+        messId = res.data?.data?.id;
+      }
 
       if (coverImage && messId) {
         console.log("Cover image exists?", coverImage);
         await uploadCoverImage(messId, coverImage);
       }
 
-      showToast("Mess created successfully", "success");
+      showToast(
+        ownerMode === "new"
+          ? "Mess owner and mess created successfully"
+          : "Mess created successfully",
+        "success"
+      );
       navigate("/messes");
     } catch (error: unknown) {
       console.error("Create mess failed", error);
@@ -324,23 +345,27 @@ export default function AddMess() {
           </div>
 
           <div>
-            <label>District *</label>
-            <select
-              name="districtId"
-              value={form.districtId}
+            <label>Latitude</label>
+            <input
+              name="latitude"
+              type="text"
+              inputMode="decimal"
+              placeholder="9.9312"
+              value={form.latitude}
               onChange={handleChange}
-              required
-            >
-              <option value="">
-                {loadingDistricts ? "Loading districts..." : "Select District"}
-              </option>
+            />
+          </div>
 
-              {districts.map((district) => (
-                <option key={district.id} value={district.id}>
-                  {district.name}
-                </option>
-              ))}
-            </select>
+          <div>
+            <label>Longitude</label>
+            <input
+              name="longitude"
+              type="text"
+              inputMode="decimal"
+              placeholder="76.2673"
+              value={form.longitude}
+              onChange={handleChange}
+            />
           </div>
         </div>
 
@@ -397,42 +422,118 @@ export default function AddMess() {
         </div>
       </div>
 
-      {/* MESS ADMINS */}
+      {/* MESS ADMINS / OWNER */}
       <div className={styles.card}>
         <div className={styles.cardHeader}>
-          <h3>Mess Admins</h3>
+          <h3>Mess Owner</h3>
+        </div>
 
+        <div className={styles.tabRow}>
           <button
             type="button"
-            className={styles.addSmallBtn}
-            onClick={() => setShowAdminModal(true)}
+            className={`${styles.tabBtn} ${ownerMode === "existing" ? styles.tabBtnActive : ""}`}
+            onClick={() => setOwnerMode("existing")}
           >
-            <LuPlus /> Add Admin
+            Select Existing Owner
+          </button>
+          <button
+            type="button"
+            className={`${styles.tabBtn} ${ownerMode === "new" ? styles.tabBtnActive : ""}`}
+            onClick={() => setOwnerMode("new")}
+          >
+            Create New Owner
           </button>
         </div>
 
-        {selectedAdmins.length > 0 ? (
-          <div className={styles.selectedAdminList}>
-            {selectedAdmins.map((admin) => (
-              <div key={admin.id} className={styles.adminItem}>
-                <div>
-                  <strong>{admin.name}</strong>
-                  <p>{admin.email}</p>
-                </div>
-                <button
-                  type="button"
-                  className={styles.removeBtnSmall}
-                  onClick={() => handleToggleAdmin(admin)}
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
+        {ownerMode === "new" ? (
+          <div className={styles.grid} style={{ marginTop: 18 }}>
+            <div>
+              <label>Owner Name *</label>
+              <input
+                name="name"
+                placeholder="Owner full name"
+                value={newOwner.name}
+                onChange={handleNewOwnerChange}
+              />
+            </div>
+
+            <div>
+              <label>Owner Email *</label>
+              <input
+                type="email"
+                name="email"
+                placeholder="owner@example.com"
+                value={newOwner.email}
+                onChange={handleNewOwnerChange}
+              />
+            </div>
+
+            <div>
+              <label>Owner Phone *</label>
+              <input
+                name="phone"
+                type="tel"
+                inputMode="numeric"
+                pattern="[0-9]{10}"
+                maxLength={10}
+                placeholder="9876543210"
+                value={newOwner.phone}
+                onChange={handleNewOwnerChange}
+                onInput={(e) => {
+                  const input = e.target as HTMLInputElement;
+                  input.value = input.value.replace(/[^0-9]/g, "").slice(0, 10);
+                }}
+              />
+            </div>
+
+            <div>
+              <label>Owner Password *</label>
+              <input
+                type="password"
+                name="password"
+                placeholder="Min 6 characters"
+                value={newOwner.password}
+                onChange={handleNewOwnerChange}
+              />
+            </div>
           </div>
         ) : (
-          <div className={styles.emptyState}>
-            No admins added yet. Click "Add Admin" to add one.
-          </div>
+          <>
+            <div className={styles.cardHeader} style={{ marginTop: 18 }}>
+              <span />
+              <button
+                type="button"
+                className={styles.addSmallBtn}
+                onClick={() => setShowAdminModal(true)}
+              >
+                <LuPlus /> Add Admin
+              </button>
+            </div>
+
+            {selectedAdmins.length > 0 ? (
+              <div className={styles.selectedAdminList}>
+                {selectedAdmins.map((admin) => (
+                  <div key={admin.id} className={styles.adminItem}>
+                    <div>
+                      <strong>{admin.name}</strong>
+                      <p>{admin.email}</p>
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.removeBtnSmall}
+                      onClick={() => handleToggleAdmin(admin)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className={styles.emptyState}>
+                No admins added yet. Click "Add Admin" to add one.
+              </div>
+            )}
+          </>
         )}
 
         {showAdminModal && (

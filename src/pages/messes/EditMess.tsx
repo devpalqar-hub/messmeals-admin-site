@@ -31,11 +31,6 @@ interface MessOwner {
   };
 }
 
-interface District {
-  id: string;
-  name: string;
-}
-
 export default function EditMess() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -48,7 +43,6 @@ export default function EditMess() {
     phone: "",
     email: "",
     location: "",
-    districtId: "",
     latitude: "",
     longitude: "",
     is_active: true,
@@ -67,10 +61,6 @@ export default function EditMess() {
   // Arrays/tags/food types
   const [foodTypes, setFoodTypes] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
-
-  // Districts
-  const [districts, setDistricts] = useState<District[]>([]);
-  const [loadingDistricts, setLoadingDistricts] = useState(false);
 
   // Mess owners/admins
   const [messAdminIds, setMessAdminIds] = useState<string[]>([]);
@@ -124,24 +114,6 @@ export default function EditMess() {
       .replace(/_/g, " ")
       .replace(/\b\w/g, (char) => char.toUpperCase());
 
-  // Fetch districts
-  useEffect(() => {
-    const fetchDistricts = async () => {
-      try {
-        setLoadingDistricts(true);
-        const res = await api.get("/districts");
-        if (res.data?.data) {
-          setDistricts(res.data.data);
-        }
-      } catch (error) {
-        console.error("Failed to fetch districts", error);
-      } finally {
-        setLoadingDistricts(false);
-      }
-    };
-    fetchDistricts();
-  }, []);
-
   // Fetch mess details
   useEffect(() => {
     const fetchMess = async () => {
@@ -157,7 +129,6 @@ export default function EditMess() {
           phone: data.phone || "",
           email: data.email || "",
           location: data.location || "",
-          districtId: data.districtId || "",
           latitude: data.latitude || "",
           longitude: data.logitude || "",
           is_active: data.is_active ?? false,
@@ -316,20 +287,19 @@ export default function EditMess() {
     setPreviews(updatedPreviews);
   };
 
-  const getErrorMessage = (error: unknown) => {
+  const getErrorMessage = (error: unknown): string => {
     if (typeof error === "object" && error !== null) {
-      const err = error as {
-        response?: {
-          data?: {
-            message?: string | string[];
-          };
-        };
-      };
-
+      const err = error as any;
       const message = err.response?.data?.message;
       if (message) {
-        return Array.isArray(message) ? message.join(", ") : message;
+        if (Array.isArray(message)) return message.map((m) => (typeof m === "string" ? m : JSON.stringify(m))).join(", ");
+        if (typeof message === "string") return message;
+        if (typeof message === "object" && message !== null) {
+          if (typeof message.message === "string") return message.message;
+          return JSON.stringify(message);
+        }
       }
+      if (err.message && typeof err.message === "string") return err.message;
     }
     return "Something went wrong";
   };
@@ -355,13 +325,11 @@ export default function EditMess() {
         is_verified: form.is_verified,
         isPremium: form.isPremium,
         location: form.location,
-        districtId: form.districtId,
         latitude: form.latitude || undefined,
         longitude: form.longitude || undefined,
         foodTypes,
         tags,
         features: [],
-        messAdminIds,
       };
 
       // 1️⃣ Delete removed images from backend
@@ -476,26 +444,6 @@ export default function EditMess() {
               value={form.address}
               onChange={handleChange}
             />
-          </div>
-
-          <div>
-            <label>District *</label>
-            <select
-              name="districtId"
-              value={form.districtId}
-              onChange={handleChange}
-              required
-            >
-              <option value="">
-                {loadingDistricts ? "Loading districts..." : "Select District"}
-              </option>
-
-              {districts.map((district) => (
-                <option key={district.id} value={district.id}>
-                  {district.name}
-                </option>
-              ))}
-            </select>
           </div>
 
           <div>

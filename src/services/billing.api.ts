@@ -34,7 +34,7 @@ export const getMessBillingInvoice = (
     `/billing/mess/${messId}/invoice`,
     {
       params: {
-        ...(usageMonth && { usageMonth }),
+        ...(usageMonth && { month: usageMonth }),
       },
     }
   );
