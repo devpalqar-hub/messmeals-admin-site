@@ -25,13 +25,13 @@ export const createMess = async (data: {
   files?: File[];
 }) => {
   // Upload gallery images to S3
-  let imageUrls: Array<{ url: string }> = [];
+  let imageUrls: string[] = [];
 
   if (data.files && data.files.length > 0) {
     const uploadedUrls = await Promise.all(
       data.files.map((file) => uploadFile(file))
     );
-    imageUrls = uploadedUrls.map((url) => ({ url }));
+    imageUrls = uploadedUrls;
   }
 
   // Build JSON payload

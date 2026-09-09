@@ -18,7 +18,7 @@ export interface CreateMessPayload {
   foodTypes: string[];
   tags: string[];
   features?: string[];
-  images?: Array<{ url: string }>;
+  images?: string[];
 }
 
 export interface UpdateMessPayload {
@@ -34,7 +34,7 @@ export interface UpdateMessPayload {
   foodTypes: string[];
   tags: string[];
   features?: string[];
-  images?: Array<{ url: string }>;
+  images?: string[];
   messAdminIds?: string[];
   icon?: string;
   latitude?: string;
