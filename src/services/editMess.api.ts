@@ -23,7 +23,7 @@ export const updateMessImages = async (id: string, files: File[]) => {
   );
 
   const imagePayload = {
-    images: uploadedUrls.map((url) => ({ url })),
+    images: uploadedUrls,
   };
 
   return api.post(
