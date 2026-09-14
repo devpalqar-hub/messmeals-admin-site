@@ -84,3 +84,17 @@ export const uploadCoverImage = async (
     }
   );
 };
+
+/**
+ * Upload an icon/logo image to S3 and set it on the mess.
+ */
+export const uploadIconImage = async (messId: string, file: File) => {
+  const url = await uploadFile(file);
+
+  return api.patch(
+    `/mess/${messId}`,
+    { icon: url },
+    { headers: { "Content-Type": "application/json" } }
+  );
+};
+

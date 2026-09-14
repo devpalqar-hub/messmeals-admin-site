@@ -3,7 +3,7 @@ import { LuArrowLeft, LuPlus } from "react-icons/lu";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import type { ChangeEvent } from "react";
-import { createMess, uploadCoverImage } from "../../services/addMess.api";
+import { createMess, uploadCoverImage, uploadIconImage } from "../../services/addMess.api";
 import { getMessOwners, createMessWithOwner } from "../../services/messOwners.api";
 import { uploadFile } from "../../services/upload.service";
 import { useToast } from "../../components/ui/Toast/ToastContainer";
@@ -158,6 +158,8 @@ export default function AddMess() {
 
   const [coverImage, setCoverImage] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [iconImage, setIconImage] = useState<File | null>(null);
+  const [iconPreview, setIconPreview] = useState<string | null>(null);
 
 
 
@@ -267,6 +269,10 @@ export default function AddMess() {
       if (coverImage && messId) {
         console.log("Cover image exists?", coverImage);
         await uploadCoverImage(messId, coverImage);
+      }
+
+      if (iconImage && messId) {
+        await uploadIconImage(messId, iconImage);
       }
 
       showToast(
@@ -698,6 +704,52 @@ export default function AddMess() {
           ))}
         </div>
       </div>
+
+      {/* ICON / LOGO */}
+      <div className={styles.card}>
+        <h3>Icon / Logo</h3>
+
+        {!iconPreview ? (
+          <label className={styles.uploadBox}>
+            <p>Click to upload icon/logo</p>
+            <span>PNG, JPG up to 5MB</span>
+
+            <input
+              type="file"
+              accept="image/png, image/jpeg"
+              hidden
+              onChange={(e) => {
+                if (!e.target.files?.[0]) return;
+                const file = e.target.files[0];
+                setIconImage(file);
+                setIconPreview(URL.createObjectURL(file));
+              }}
+            />
+          </label>
+        ) : (
+          <div className={styles.previewGrid}>
+            <div className={styles.previewItem}>
+              <img
+                src={iconPreview}
+                alt="new icon"
+                className={styles.previewImage}
+              />
+              <button
+                type="button"
+                className={styles.removeBtn}
+                onClick={() => {
+                  URL.revokeObjectURL(iconPreview);
+                  setIconImage(null);
+                  setIconPreview(null);
+                }}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* COVER IMAGE */}
       <div className={styles.card}>
         <h3>Cover Image</h3>
