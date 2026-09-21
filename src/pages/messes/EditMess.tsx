@@ -308,11 +308,6 @@ export default function EditMess() {
     try {
       if (!id) return;
 
-      if (existingImages.length === 0 && files.length === 0) {
-        showToast("At least one image is required", "error");
-        return;
-      }
-
       setLoading(true);
 
       const payload = {
