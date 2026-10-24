@@ -43,7 +43,10 @@ export default function Login() {
     } catch (err: unknown) {
         let msg = "Invalid email or password";
         if (axios.isAxiosError(err)) {
-          msg = err.response?.data?.message || msg;
+          const m = err.response?.data?.message;
+          if (typeof m === "string") msg = m;
+          else if (Array.isArray(m)) msg = m.join(", ");
+          else if (m && typeof m.message === "string") msg = m.message;
         }
         showToast(msg, "error");
       } finally {
